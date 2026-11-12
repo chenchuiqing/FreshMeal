@@ -1,0 +1,141 @@
+openapi: 3.1.0
+info:
+  title: FreshMeal 用户端认证接口
+  version: 0.1.0
+servers:
+  - url: /api
+paths:
+  /shop/auth/register:
+    post:
+      operationId: registerAccount
+      summary: 注册用户并返回登录会话
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShopAuthRequest'
+      responses:
+        '200':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultShopLoginResult'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/auth/login:
+    post:
+      operationId: loginPassword
+      summary: 用户登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShopAuthRequest'
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultShopLoginResult'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/auth/logout:
+    post:
+      operationId: logoutPassword
+      summary: 退出当前登录会话
+      responses:
+        '200':
+          description: 退出成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+components:
+  schemas:
+    ShopAuthRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 50
+        password:
+          type: string
+          minLength: 6
+          maxLength: 100
+    ShopLoginResult:
+      type: object
+      additionalProperties: false
+      required:
+        - accessToken
+        - expires
+      properties:
+        accessToken:
+          type: string
+        expires:
+          type: string
+          format: date-time
+        username:
+          type: string
+        nickname:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+    ResultShopLoginResult:
+      type: object
+      required:
+        - code
+        - message
+        - data
+        - timestamp
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ShopLoginResult'
+        timestamp:
+          type: integer
+          format: int64
+    ResultNull:
+      type: object
+      required:
+        - code
+        - message
+        - data
+        - timestamp
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: 'null'
+        timestamp:
+          type: integer
+          format: int64
