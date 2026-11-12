@@ -1,5 +1,8 @@
 package com.freshmeal.common;
 
+import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
+import cn.dev33.satoken.exception.NotRoleException;
 import com.freshmeal.enums.ErrorCode;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -30,6 +33,20 @@ public class GlobalExceptionHandler {
         LOGGER.warn("Business exception: code={}, message={}", exception.getCode(), exception.getMessage());
         return ResponseEntity.status(status)
                 .body(Result.error(exception.getCode(), exception.getMessage()));
+    }
+
+    @ExceptionHandler(NotLoginException.class)
+    public ResponseEntity<Result<Void>> handleNotLoginException(NotLoginException exception) {
+        LOGGER.debug("Sa-Token login exception", exception);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Result.error(ErrorCode.UNAUTHORIZED.getCode(), ErrorCode.UNAUTHORIZED.getMessage()));
+    }
+
+    @ExceptionHandler({NotRoleException.class, NotPermissionException.class})
+    public ResponseEntity<Result<Void>> handleAuthorizationException(Exception exception) {
+        LOGGER.debug("Sa-Token authorization exception", exception);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Result.error(ErrorCode.FORBIDDEN.getCode(), ErrorCode.FORBIDDEN.getMessage()));
     }
 
     @ExceptionHandler({

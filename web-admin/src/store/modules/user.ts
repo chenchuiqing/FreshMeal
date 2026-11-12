@@ -9,9 +9,8 @@ import {
 } from "../utils";
 import {
   type UserResult,
-  type RefreshTokenResult,
   getLogin,
-  refreshTokenApi
+  getLogout
 } from "@/api/user";
 import { useMultiTagsStoreHook } from "./multiTags";
 import { type DataInfo, setToken, removeToken, userKey } from "@/utils/auth";
@@ -76,24 +75,23 @@ export const useUserStore = defineStore("pure-user", {
       this.loginDay = Number(value);
     },
     /** 登入 */
-    async loginByUsername(data) {
-      return new Promise<UserResult>((resolve, reject) => {
-        getLogin(data)
-          .then(data => {
-            if (data.code === 0) {
-              setToken(data.data);
-              resolve(data);
-            } else {
-              reject(data.message);
-            }
-          })
-          .catch(error => {
-            reject(error);
-          });
-      });
+    async loginByUsername(data): Promise<UserResult> {
+      try {
+        const result = await getLogin(data);
+        if (result.code === 200) {
+          setToken(result.data);
+          return result;
+        }
+        return Promise.reject(result.message);
+      } catch (error) {
+        return Promise.reject(
+          error instanceof Error ? error.message : "登录失败"
+        );
+      }
     },
-    /** 前端登出（不调用接口） */
+    /** 登出 */
     async logOut() {
+      await getLogout().catch(() => undefined);
       this.username = "";
       this.roles = [];
       this.permissions = [];
@@ -101,23 +99,6 @@ export const useUserStore = defineStore("pure-user", {
       useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
       await router.push("/login");
       resetRouter();
-    },
-    /** 刷新`token` */
-    async handRefreshToken(data) {
-      return new Promise<RefreshTokenResult>((resolve, reject) => {
-        refreshTokenApi(data)
-          .then(data => {
-            if (data.code === 0) {
-              setToken(data.data);
-              resolve(data);
-            } else {
-              reject(data.message);
-            }
-          })
-          .catch(error => {
-            reject(error);
-          });
-      });
     }
   }
 });

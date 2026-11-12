@@ -211,7 +211,7 @@ function initRouter() {
     } else {
       return new Promise(resolve => {
         getAsyncRoutes().then(({ code, data }) => {
-          if (code === 0) {
+          if (code === 200) {
             handleAsyncRoutes(cloneDeep(data));
             storageLocal().setItem(key, data);
             resolve(router);
@@ -224,7 +224,7 @@ function initRouter() {
   } else {
     return new Promise(resolve => {
       getAsyncRoutes().then(({ code, data }) => {
-        if (code === 0) {
+        if (code === 200) {
           handleAsyncRoutes(cloneDeep(data));
           resolve(router);
         } else {
