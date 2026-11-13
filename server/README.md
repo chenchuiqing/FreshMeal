@@ -9,12 +9,18 @@
 
 ## Start
 
+Create the database first; Flyway creates the tables and seed data on first startup:
+
+```sql
+CREATE DATABASE freshmeal DEFAULT CHARACTER SET utf8mb4;
+```
+
 ```powershell
 $env:JWT_SECRET_KEY = '<replace-with-a-long-random-secret>'
 mvn spring-boot:run
 ```
 
-Flyway applies migrations from `src/main/resources/db/migration` during startup.
+Flyway applies migrations from `src/main/resources/db/migration` during startup. Full startup steps are in the repository root `README.md`.
 
 ## Seed Accounts
 
