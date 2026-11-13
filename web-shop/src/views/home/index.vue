@@ -59,7 +59,7 @@
           <span>今日推荐</span>
           <h2 id="recommend-title">为你挑好的几样</h2>
         </div>
-        <div class="shelf">
+        <div class="shelf no-scrollbar">
           <div
             v-for="item in recommended"
             :key="item.id"

@@ -19,7 +19,10 @@
       网络已断开，恢复连接后可继续加载内容
     </p>
 
-    <main class="page-scroll" :class="{ 'page-scroll--with-nav': isRootPage }">
+    <main
+      class="page-scroll no-scrollbar"
+      :class="{ 'page-scroll--with-nav': isRootPage }"
+    >
       <RouterView v-slot="{ Component, route: childRoute }">
         <KeepAlive>
           <component

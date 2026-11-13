@@ -23,7 +23,7 @@
         分类加载中
       </van-loading>
       <template v-else>
-        <div class="chip-row">
+        <div class="chip-row no-scrollbar">
           <button
             type="button"
             class="chip"
@@ -45,7 +45,10 @@
             {{ item.name }}
           </button>
         </div>
-        <div v-if="activeRoot && subCategories.length > 0" class="chip-row">
+        <div
+          v-if="activeRoot && subCategories.length > 0"
+          class="chip-row no-scrollbar"
+        >
           <button
             type="button"
             class="chip chip--sub"
@@ -151,10 +154,10 @@
             ×
           </button>
         </header>
-        <div class="filter-panel__body">
+        <div class="filter-panel__body no-scrollbar">
           <section class="filter-group">
             <h3>热量区间</h3>
-            <div class="chip-row">
+            <div class="chip-row no-scrollbar">
               <button
                 v-for="preset in CALORIE_PRESETS"
                 :key="preset.key"
@@ -170,7 +173,7 @@
           </section>
           <section class="filter-group">
             <h3>价格区间</h3>
-            <div class="chip-row">
+            <div class="chip-row no-scrollbar">
               <button
                 v-for="preset in PRICE_PRESETS"
                 :key="preset.key"
@@ -189,7 +192,7 @@
               健康标签
               <span class="filter-group__hint">多选取交集</span>
             </h3>
-            <div class="chip-row">
+            <div class="chip-row no-scrollbar">
               <button
                 v-for="tag in healthTagOptions ?? []"
                 :key="tag"
