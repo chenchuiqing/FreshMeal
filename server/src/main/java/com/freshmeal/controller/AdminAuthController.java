@@ -1,8 +1,9 @@
 package com.freshmeal.controller;
 
-import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.annotation.SaCheckRole;
 import com.freshmeal.common.Result;
 import com.freshmeal.dto.admin.AdminLoginRequest;
+import com.freshmeal.security.StpInterfaceImpl;
 import com.freshmeal.service.AdminAuthService;
 import com.freshmeal.vo.admin.AdminLoginVO;
 import com.freshmeal.vo.admin.AdminProfileVO;
@@ -27,13 +28,13 @@ public class AdminAuthController {
     }
 
     @GetMapping("/profile")
-    @SaCheckLogin
+    @SaCheckRole(StpInterfaceImpl.ROLE_ADMIN)
     public Result<AdminProfileVO> profile() {
         return Result.ok(adminAuthService.getProfile());
     }
 
     @PostMapping("/logout")
-    @SaCheckLogin
+    @SaCheckRole(StpInterfaceImpl.ROLE_ADMIN)
     public Result<Void> logout() {
         adminAuthService.logout();
         return Result.ok();

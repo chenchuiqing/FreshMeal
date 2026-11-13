@@ -1,7 +1,9 @@
 package com.freshmeal.controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.freshmeal.common.Result;
 import com.freshmeal.dto.rider.RiderAuthRequest;
+import com.freshmeal.security.StpInterfaceImpl;
 import com.freshmeal.service.RiderAuthService;
 import com.freshmeal.vo.rider.RiderLoginVO;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ public class RiderAuthController {
     }
 
     @PostMapping("/logout")
+    @SaCheckLogin(type = StpInterfaceImpl.RIDER_LOGIN_TYPE)
     public Result<Void> logout() {
         riderAuthService.logout();
         return Result.ok();

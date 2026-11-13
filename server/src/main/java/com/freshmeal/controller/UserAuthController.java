@@ -1,7 +1,9 @@
 package com.freshmeal.controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.freshmeal.common.Result;
 import com.freshmeal.dto.user.UserAuthRequest;
+import com.freshmeal.security.StpInterfaceImpl;
 import com.freshmeal.service.UserAuthService;
 import com.freshmeal.vo.user.UserLoginVO;
 import jakarta.validation.Valid;
@@ -29,6 +31,7 @@ public class UserAuthController {
     }
 
     @PostMapping("/logout")
+    @SaCheckLogin(type = StpInterfaceImpl.USER_LOGIN_TYPE)
     public Result<Void> logout() {
         userAuthService.logout();
         return Result.ok();
