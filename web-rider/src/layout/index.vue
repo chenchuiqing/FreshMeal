@@ -1,9 +1,13 @@
 <template>
   <div class="app-shell">
-    <header class="top-bar">
-      <span class="top-bar__brand">FreshMeal 配送端</span>
-      <span class="top-bar__title">{{ pageTitle }}</span>
-      <span />
+    <header class="rider-bar">
+      <span class="brand-mark" aria-hidden="true">FM</span>
+      <span class="brand-name">FreshMeal 配送端</span>
+      <RouterLink to="/profile" class="rider-entry" aria-label="进入我的页面">
+        <span class="rider-entry__avatar" aria-hidden="true">
+          {{ avatarText }}
+        </span>
+      </RouterLink>
     </header>
 
     <main class="page-scroll">
@@ -25,13 +29,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRiderStore } from '@/store/modules/rider';
 
-const route = useRoute();
-const pageTitle = computed(
-  () =>
-    (typeof route.meta.title === 'string' ? route.meta.title : '') ||
-    'FreshMeal 配送端',
+const riderStore = useRiderStore();
+const avatarText = computed(() =>
+  (riderStore.info?.realName || riderStore.info?.username || '骑')
+    .slice(0, 1)
+    .toUpperCase(),
 );
 </script>
 
@@ -41,29 +45,54 @@ const pageTitle = computed(
   flex-direction: column;
   width: 100%;
   height: 100dvh;
-  background: var(--color-background);
+  background: var(--color-canvas);
 }
 
-.top-bar {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+.rider-bar {
+  display: flex;
+  gap: var(--space-2);
   align-items: center;
   min-height: 3.25rem;
-  padding-top: env(safe-area-inset-top);
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  padding: env(safe-area-inset-top) var(--space-4) 0;
+  color: var(--color-ink-text);
+  background: var(--color-ink);
 }
 
-.top-bar__brand {
-  padding-left: var(--space-4);
+.brand-mark {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--color-brand-ink);
+  background: var(--color-brand);
+  border-radius: var(--radius-sm);
+}
+
+.brand-name {
+  font-size: var(--text-body);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.rider-entry {
+  margin-left: auto;
+  text-decoration: none;
+  border-radius: var(--radius-pill);
+}
+
+.rider-entry__avatar {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
   font-size: var(--text-secondary);
   font-weight: 700;
-  color: var(--color-primary);
-}
-
-.top-bar__title {
-  font-weight: 700;
-  text-align: center;
+  color: var(--color-brand-ink);
+  background: var(--color-brand);
+  border-radius: 50%;
 }
 
 .page-scroll {
@@ -84,8 +113,8 @@ const pageTitle = computed(
   grid-template-columns: repeat(2, 1fr);
   min-height: 3.75rem;
   padding-bottom: env(safe-area-inset-bottom);
-  background: rgb(255 255 255 / 96%);
-  border-top: 1px solid var(--color-border);
+  background: var(--color-ink);
+  border-top: 1px solid var(--color-ink-line);
 }
 
 .tab-bar__item {
@@ -95,13 +124,13 @@ const pageTitle = computed(
   align-items: center;
   justify-content: center;
   min-width: 0;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  font-size: var(--text-caption);
+  color: var(--color-ink-muted);
   text-decoration: none;
 
   &.router-link-active {
     font-weight: 700;
-    color: var(--color-primary);
+    color: var(--color-brand);
   }
 }
 
@@ -110,7 +139,9 @@ const pageTitle = computed(
     right: 50%;
     left: auto;
     width: 24rem;
-    border: 1px solid var(--color-border);
+    overflow: hidden;
+    border: 1px solid var(--color-ink-line);
+    border-bottom: 0;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     transform: translateX(50%);
   }

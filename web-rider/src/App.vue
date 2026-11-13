@@ -40,8 +40,9 @@ const recover = () => window.location.reload();
   button {
     min-height: var(--touch-target);
     padding: 0 var(--space-4);
-    color: var(--color-primary-contrast);
-    background: var(--color-primary);
+    font-weight: 700;
+    color: var(--color-brand-ink);
+    background: var(--color-brand);
     border: 0;
     border-radius: var(--radius-md);
   }

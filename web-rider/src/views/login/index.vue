@@ -1,10 +1,16 @@
 <template>
   <main class="login-page">
-    <section class="login-card surface-card">
-      <div class="login-mark" aria-hidden="true">FM</div>
-      <span class="login-eyebrow">FreshMeal 配送端</span>
+    <section class="login-brand">
+      <span class="brand-mark" aria-hidden="true">FM</span>
+      <div>
+        <strong>FreshMeal 配送端</strong>
+        <p>接单、送达、收入，一路都在线</p>
+      </div>
+    </section>
+
+    <section class="login-card">
       <h1>骑手登录</h1>
-      <p>账号由管理员创建，登录后可查看并处理配送任务。</p>
+      <p class="login-hint">使用管理员分配的账号登录</p>
 
       <van-form class="login-form" @submit="login">
         <van-field
@@ -92,53 +98,64 @@ const login = async (values: Record<string, string>) => {
 
 <style scoped lang="scss">
 .login-page {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
-  padding: calc(var(--space-5) + env(safe-area-inset-top)) var(--space-5)
-    calc(var(--space-5) + env(safe-area-inset-bottom));
-  background:
-    radial-gradient(
-      circle at 50% 0,
-      var(--color-primary-soft),
-      transparent 42%
-    ),
-    var(--color-background);
+  color: var(--color-ink-text);
+  background: var(--color-ink);
 }
 
-.login-card {
-  align-self: start;
-  max-width: 28rem;
-  padding: var(--space-6);
-  margin: 7vh auto 0;
+.login-brand {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: calc(3.5rem + env(safe-area-inset-top)) var(--space-5) var(--space-6);
+
+  strong {
+    font-size: var(--text-title);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  p {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-secondary);
+    color: var(--color-ink-muted);
+  }
 }
 
-.login-mark {
+.brand-mark {
   display: grid;
   width: 3rem;
   height: 3rem;
+  flex: 0 0 auto;
   place-items: center;
+  font-size: 1.125rem;
   font-weight: 800;
-  color: var(--color-primary-contrast);
-  background: var(--color-primary);
-  border-radius: var(--radius-lg);
+  color: var(--color-brand-ink);
+  background: var(--color-brand);
+  border-radius: var(--radius-md);
 }
 
-.login-eyebrow {
-  display: block;
-  margin-top: var(--space-5);
-  font-size: 0.75rem;
-  font-weight: 750;
-  color: var(--color-primary);
+/* 登录表单作为底部面板浮在深色背景上 */
+.login-card {
+  padding: var(--space-6) var(--space-5)
+    calc(var(--space-6) + env(safe-area-inset-bottom));
+  margin-top: auto;
+  color: var(--color-text);
+  background: var(--color-paper);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 h1 {
-  margin: var(--space-2) 0 var(--space-2);
+  margin: 0;
   font-size: var(--text-title);
-  line-height: 1.25;
+  font-weight: 800;
 }
 
-.login-card > p {
-  margin: 0 0 var(--space-6);
+.login-hint {
+  margin: var(--space-2) 0 var(--space-5);
+  font-size: var(--text-secondary);
   color: var(--color-text-secondary);
 }
 
@@ -147,20 +164,23 @@ h1 {
   gap: var(--space-3);
 
   :deep(.van-field) {
-    padding: var(--space-2) var(--space-3);
-    background: var(--color-background);
-    border: 1px solid var(--color-border);
+    padding: var(--space-3);
+    background: var(--color-canvas);
+    border: 1px solid transparent;
     border-radius: var(--radius-md);
   }
 
+  :deep(.van-field:focus-within) {
+    border-color: var(--color-brand);
+  }
+
   :deep(.van-field__label) {
-    width: 3.5rem;
-    font-weight: 650;
-    color: var(--color-text-secondary);
+    width: 3rem;
+    font-weight: 700;
   }
 
   .van-button {
-    min-height: 2.875rem;
+    min-height: 3rem;
     margin-top: var(--space-2);
     font-weight: 700;
   }
@@ -173,9 +193,9 @@ h1 {
 }
 
 .account-note {
-  margin-top: var(--space-5) !important;
-  margin-bottom: 0 !important;
-  font-size: 0.75rem;
+  margin: var(--space-5) 0 0;
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
   text-align: center;
 }
 </style>
