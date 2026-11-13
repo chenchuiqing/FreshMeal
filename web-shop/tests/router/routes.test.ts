@@ -20,11 +20,20 @@ describe('shop routes', () => {
         'catalog',
         'cart',
         'member',
+        'product/:id',
         '/login',
         '/register',
         '/offline',
       ]),
     );
+  });
+
+  it('keeps the product detail route lazy with a visible back header', () => {
+    const route = allRoutes.find((item) => item.name === 'productDetail');
+    expect(route?.path).toBe('product/:id');
+    expect(route?.meta?.title).toBe('商品详情');
+    expect(route?.meta?.keepAlive).toBe(false);
+    expect(route?.meta?.hideHeader).toBeUndefined();
   });
 
   it('keeps guest pages public and redirects unknown routes home', () => {

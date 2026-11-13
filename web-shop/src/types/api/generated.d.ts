@@ -55,6 +55,108 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/shop/category/tree': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 获取启用分类的两级树 */
+    get: operations['getShopCategoryTree'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/product/page': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 商品分页浏览，支持分类、关键词、价格、热量、健康标签组合筛选与排序 */
+    get: operations['getShopProductPage'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/product/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 商品详情，含规格、选项组、图集与营养储存信息 */
+    get: operations['getShopProductDetail'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/product/hot': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 热销榜 */
+    get: operations['getHotProducts'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/product/recommend': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 推荐商品 */
+    get: operations['getRecommendedProducts'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/product/health-tags': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 可用健康标签候选集 */
+    get: operations['getHealthTags'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -71,10 +173,161 @@ export interface components {
       nickname?: string;
       roles?: string[];
     };
+    CategoryNode: {
+      /** Format: int64 */
+      id: number;
+      /** Format: int64 */
+      parentId: number;
+      name: string;
+      icon?: string;
+      sort: number;
+      status: number;
+      children: components['schemas']['CategoryNode'][];
+    };
+    ShopProduct: {
+      /** Format: int64 */
+      id: number;
+      /** Format: int64 */
+      categoryId: number;
+      categoryName?: string;
+      name: string;
+      subtitle?: string;
+      cover: string;
+      unit: string;
+      price: number;
+      originalPrice?: number;
+      calories: number;
+      protein: number;
+      fat: number;
+      carbohydrate: number;
+      sodium: number;
+      healthTags: string[];
+      stock: number;
+      salesCount: number;
+      status: number;
+      available: boolean;
+    };
+    ProductSpec: {
+      /** Format: int64 */
+      id: number;
+      name: string;
+      priceDelta: number;
+      stock: number;
+      calories: number;
+      isDefault: number;
+      sort: number;
+      status: number;
+    };
+    ProductOptionItem: {
+      /** Format: int64 */
+      id: number;
+      name: string;
+      priceDelta: number;
+      calories: number;
+      sort: number;
+      status: number;
+    };
+    ProductOption: {
+      /** Format: int64 */
+      id: number;
+      name: string;
+      type: number;
+      required: number;
+      sort: number;
+      items: components['schemas']['ProductOptionItem'][];
+    };
+    ProductImage: {
+      /** Format: int64 */
+      id: number;
+      imageUrl: string;
+      sort: number;
+      status: number;
+    };
+    ShopProductDetail: {
+      /** Format: int64 */
+      id: number;
+      /** Format: int64 */
+      categoryId: number;
+      categoryName?: string;
+      name: string;
+      subtitle?: string;
+      cover: string;
+      detail?: string;
+      productType: number;
+      price: number;
+      originalPrice?: number;
+      unit: string;
+      stock: number;
+      salesCount: number;
+      status: number;
+      calories: number;
+      protein: number;
+      fat: number;
+      carbohydrate: number;
+      sodium: number;
+      nutritionDesc?: string;
+      allergens: string[];
+      storageType: number;
+      storageLabel?: string;
+      shelfLifeDays: number;
+      producer?: string;
+      heatingMethod?: string;
+      healthTags: string[];
+      available: boolean;
+      specs: components['schemas']['ProductSpec'][];
+      options: components['schemas']['ProductOption'][];
+      images: components['schemas']['ProductImage'][];
+    };
+    ShopProductPage: {
+      records: components['schemas']['ShopProduct'][];
+      /** Format: int64 */
+      total: number;
+      /** Format: int64 */
+      current: number;
+      /** Format: int64 */
+      size: number;
+      /** Format: int64 */
+      pages: number;
+    };
     ResultShopLoginResult: {
       code: number;
       message: string;
       data: components['schemas']['ShopLoginResult'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultCategoryNodeList: {
+      code: number;
+      message: string;
+      data: components['schemas']['CategoryNode'][];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultShopProductPage: {
+      code: number;
+      message: string;
+      data: components['schemas']['ShopProductPage'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultShopProductDetail: {
+      code: number;
+      message: string;
+      data: components['schemas']['ShopProductDetail'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultShopProductList: {
+      code: number;
+      message: string;
+      data: components['schemas']['ShopProduct'][];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultStringList: {
+      code: number;
+      message: string;
+      data: string[];
       /** Format: int64 */
       timestamp: number;
     };
@@ -176,6 +429,200 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ResultNull'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  getShopCategoryTree: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultCategoryNodeList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  getShopProductPage: {
+    parameters: {
+      query?: {
+        current?: number;
+        size?: number;
+        /** @description 分类 ID，按该分类及其子分类树过滤 */
+        categoryId?: number;
+        /** @description 商品名称关键词 */
+        keyword?: string;
+        minPrice?: number;
+        maxPrice?: number;
+        minCalories?: number;
+        maxCalories?: number;
+        /** @description 逗号分隔的健康标签，多标签取交集 */
+        healthTags?: string;
+        sort?: 'default' | 'sales' | 'priceAsc' | 'priceDesc';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultShopProductPage'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  getShopProductDetail: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultShopProductDetail'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  getHotProducts: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultShopProductList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  getRecommendedProducts: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultShopProductList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  getHealthTags: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultStringList'];
         };
       };
       /** @description 统一错误响应 */

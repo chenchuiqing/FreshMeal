@@ -92,8 +92,7 @@ class PureHttp {
         const $error = error;
         $error.isCancelRequest = Axios.isCancel($error);
         const responseData = $error.response?.data as
-          | { message?: string }
-          | undefined;
+          { message?: string } | undefined;
         if (responseData?.message) {
           $error.message = responseData.message;
         }

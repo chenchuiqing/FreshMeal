@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d97b4a"/>
+      <stop offset="1" stop-color="#a04a2a"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <circle cx="660" cy="110" r="170" fill="#ffffff" opacity="0.14"/>
+  <circle cx="120" cy="510" r="130" fill="#ffffff" opacity="0.12"/>
+  <circle cx="400" cy="300" r="150" fill="#ffffff" opacity="0.16"/>
+  <text x="400" y="292" font-size="54" text-anchor="middle" fill="#ffffff" font-weight="bold" font-family="Microsoft YaHei, PingFang SC, sans-serif">照烧牛肉沙拉</text>
+  <text x="400" y="352" font-size="26" text-anchor="middle" fill="#ffffff" opacity="0.9" font-family="Microsoft YaHei, PingFang SC, sans-serif">FreshMeal</text>
+</svg>

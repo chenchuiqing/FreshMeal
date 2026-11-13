@@ -30,6 +30,80 @@
         <SvgIcon class="hero__mark" name="logo" />
       </section>
 
+      <section class="category-section" aria-labelledby="category-title">
+        <div class="section-heading">
+          <span>按分类挑</span>
+          <h2 id="category-title">今天想吃哪一类</h2>
+        </div>
+        <div class="category-list">
+          <RouterLink
+            v-for="item in roots"
+            :key="item.id"
+            class="category-item"
+            :to="{ name: 'catalog', query: { categoryId: item.id } }"
+          >
+            <span v-if="item.icon" class="category-item__icon" aria-hidden="true">{{
+              item.icon
+            }}</span>
+            <span>{{ item.name }}</span>
+          </RouterLink>
+        </div>
+      </section>
+
+      <section
+        v-if="recommended?.length"
+        class="shelf-section"
+        aria-labelledby="recommend-title"
+      >
+        <div class="section-heading">
+          <span>今日推荐</span>
+          <h2 id="recommend-title">为你挑好的几样</h2>
+        </div>
+        <div class="shelf">
+          <div
+            v-for="item in recommended"
+            :key="item.id"
+            class="shelf__item"
+          >
+            <ProductCard :product="item" />
+          </div>
+        </div>
+      </section>
+
+      <section v-if="hot?.length" class="hot-section" aria-labelledby="hot-title">
+        <div class="section-heading">
+          <span>热销榜</span>
+          <h2 id="hot-title">大家都在点</h2>
+        </div>
+        <ol class="hot-list">
+          <li v-for="(item, index) in hot" :key="item.id">
+            <RouterLink
+              class="hot-row"
+              :to="{ name: 'productDetail', params: { id: item.id } }"
+            >
+              <span
+                class="hot-row__rank"
+                :class="{ 'hot-row__rank--top': index < 3 }"
+                >{{ index + 1 }}</span
+              >
+              <img
+                class="hot-row__cover"
+                :src="item.cover"
+                :alt="item.name"
+                loading="lazy"
+              />
+              <span class="hot-row__info">
+                <b>{{ item.name }}</b>
+                <span class="hot-row__meta"
+                  >{{ item.calories }} kcal · 已售 {{ item.salesCount }}</span
+                >
+              </span>
+              <span class="hot-row__price">{{ formatPrice(item.price) }}</span>
+            </RouterLink>
+          </li>
+        </ol>
+      </section>
+
       <section class="goal-section" aria-labelledby="goal-title">
         <div class="section-heading">
           <span>按需要选择</span>
@@ -63,10 +137,36 @@
 </template>
 
 <script setup lang="ts">
+import { useQuery } from '@tanstack/vue-query';
+import ProductCard from '@/components/common/ProductCard.vue';
+import {
+  getHotProducts,
+  getRecommendedProducts,
+  getShopCategoryTree,
+} from '@/api/modules/product';
 import { useUserStore } from '@/store/modules/user';
+import { formatPrice } from '@/utils/product';
 
 defineOptions({ name: 'HomePage' });
 const userStore = useUserStore();
+
+const RECOMMEND_LIMIT = 10;
+const HOT_LIMIT = 6;
+
+const { data: categoryTree } = useQuery({
+  queryKey: ['shop', 'categories'],
+  queryFn: ({ signal }) => getShopCategoryTree(signal),
+});
+const { data: recommended } = useQuery({
+  queryKey: ['shop', 'products', 'recommended'],
+  queryFn: ({ signal }) => getRecommendedProducts(RECOMMEND_LIMIT, signal),
+});
+const { data: hot } = useQuery({
+  queryKey: ['shop', 'products', 'hot'],
+  queryFn: ({ signal }) => getHotProducts(HOT_LIMIT, signal),
+});
+
+const roots = computed(() => categoryTree.value ?? []);
 </script>
 
 <style scoped lang="scss">
@@ -262,6 +362,119 @@ const userStore = useUserStore();
     color: var(--color-primary);
     text-decoration: none;
   }
+}
+
+.category-section {
+  padding-top: var(--space-7, 1.75rem);
+}
+
+.category-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+}
+
+.category-item {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  font-size: var(--text-secondary);
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+
+  &:hover {
+    border-color: var(--color-primary);
+  }
+}
+
+.category-item__icon {
+  font-size: 1.125rem;
+}
+
+.shelf-section,
+.hot-section {
+  padding-top: var(--space-7, 1.75rem);
+}
+
+.shelf {
+  display: flex;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.shelf__item {
+  flex: 0 0 10rem;
+}
+
+.hot-list {
+  padding: var(--space-4) 0 0;
+  margin: 0;
+  list-style: none;
+}
+
+.hot-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: var(--space-2) 0;
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hot-row__rank {
+  flex: 0 0 auto;
+  width: 1.5rem;
+  font-weight: 750;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.hot-row__rank--top {
+  color: var(--color-accent);
+}
+
+.hot-row__cover {
+  flex: 0 0 auto;
+  width: 3.25rem;
+  height: 3.25rem;
+  object-fit: cover;
+  background: var(--color-background-soft);
+  border-radius: var(--radius-md);
+}
+
+.hot-row__info {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+
+  b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+}
+
+.hot-row__meta {
+  font-size: var(--text-caption);
+  color: var(--color-text-muted);
+}
+
+.hot-row__price {
+  flex: 0 0 auto;
+  font-weight: 700;
+  color: var(--color-danger);
 }
 
 @media (max-width: 560px) {

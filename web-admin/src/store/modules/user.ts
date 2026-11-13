@@ -7,11 +7,7 @@ import {
   routerArrays,
   storageLocal
 } from "../utils";
-import {
-  type UserResult,
-  getLogin,
-  getLogout
-} from "@/api/user";
+import { type UserResult, getLogin, getLogout } from "@/api/user";
 import { useMultiTagsStoreHook } from "./multiTags";
 import { type DataInfo, setToken, removeToken, userKey } from "@/utils/auth";
 

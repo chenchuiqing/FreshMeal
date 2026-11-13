@@ -19,6 +19,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -72,6 +74,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException exception) {
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
                 .body(Result.error(ErrorCode.BAD_REQUEST.getCode(), "不支持的请求内容类型"));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Result<Void>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException exception) {
+        return ResponseEntity.badRequest()
+                .body(Result.error(ErrorCode.UPLOAD_SIZE_EXCEEDED.getCode(), ErrorCode.UPLOAD_SIZE_EXCEEDED.getMessage()));
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<Result<Void>> handleMultipartException(MultipartException exception) {
+        LOGGER.warn("Multipart parse failure", exception);
+        return ResponseEntity.badRequest()
+                .body(Result.error(ErrorCode.BAD_REQUEST.getCode(), "上传文件解析失败"));
     }
 
     @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})

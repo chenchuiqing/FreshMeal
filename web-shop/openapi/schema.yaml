@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
-  title: FreshMeal 用户端认证接口
-  version: 0.1.0
+  title: FreshMeal 用户端接口
+  version: 0.2.0
 servers:
   - url: /api
 paths:
@@ -68,6 +68,195 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResultNull'
+  /shop/category/tree:
+    get:
+      operationId: getShopCategoryTree
+      summary: 获取启用分类的两级树
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCategoryNodeList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/product/page:
+    get:
+      operationId: getShopProductPage
+      summary: 商品分页浏览，支持分类、关键词、价格、热量、健康标签组合筛选与排序
+      parameters:
+        - name: current
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: categoryId
+          in: query
+          required: false
+          description: 分类 ID，按该分类及其子分类树过滤
+          schema:
+            type: integer
+            format: int64
+        - name: keyword
+          in: query
+          required: false
+          description: 商品名称关键词
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: minCalories
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: maxCalories
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: healthTags
+          in: query
+          required: false
+          description: 逗号分隔的健康标签，多标签取交集
+          schema:
+            type: string
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [default, sales, priceAsc, priceDesc]
+            default: default
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultShopProductPage'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/product/{id}:
+    get:
+      operationId: getShopProductDetail
+      summary: 商品详情，含规格、选项组、图集与营养储存信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultShopProductDetail'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/product/hot:
+    get:
+      operationId: getHotProducts
+      summary: 热销榜
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultShopProductList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/product/recommend:
+    get:
+      operationId: getRecommendedProducts
+      summary: 推荐商品
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultShopProductList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/product/health-tags:
+    get:
+      operationId: getHealthTags
+      summary: 可用健康标签候选集
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultStringList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
 components:
   schemas:
     ShopAuthRequest:
@@ -105,6 +294,324 @@ components:
           type: array
           items:
             type: string
+    CategoryNode:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - parentId
+        - name
+        - sort
+        - status
+        - children
+      properties:
+        id:
+          type: integer
+          format: int64
+        parentId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        icon:
+          type: string
+        sort:
+          type: integer
+        status:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryNode'
+    ShopProduct:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - categoryId
+        - name
+        - cover
+        - unit
+        - price
+        - calories
+        - protein
+        - fat
+        - carbohydrate
+        - sodium
+        - healthTags
+        - stock
+        - salesCount
+        - status
+        - available
+      properties:
+        id:
+          type: integer
+          format: int64
+        categoryId:
+          type: integer
+          format: int64
+        categoryName:
+          type: string
+        name:
+          type: string
+        subtitle:
+          type: string
+        cover:
+          type: string
+        unit:
+          type: string
+        price:
+          type: number
+        originalPrice:
+          type: number
+        calories:
+          type: integer
+        protein:
+          type: number
+        fat:
+          type: number
+        carbohydrate:
+          type: number
+        sodium:
+          type: number
+        healthTags:
+          type: array
+          items:
+            type: string
+        stock:
+          type: integer
+        salesCount:
+          type: integer
+        status:
+          type: integer
+        available:
+          type: boolean
+    ProductSpec:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - priceDelta
+        - stock
+        - calories
+        - isDefault
+        - sort
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        priceDelta:
+          type: number
+        stock:
+          type: integer
+        calories:
+          type: integer
+        isDefault:
+          type: integer
+        sort:
+          type: integer
+        status:
+          type: integer
+    ProductOptionItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - priceDelta
+        - calories
+        - sort
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        priceDelta:
+          type: number
+        calories:
+          type: integer
+        sort:
+          type: integer
+        status:
+          type: integer
+    ProductOption:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - type
+        - required
+        - sort
+        - items
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        type:
+          type: integer
+        required:
+          type: integer
+        sort:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductOptionItem'
+    ProductImage:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - imageUrl
+        - sort
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+        imageUrl:
+          type: string
+        sort:
+          type: integer
+        status:
+          type: integer
+    ShopProductDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - categoryId
+        - name
+        - cover
+        - productType
+        - price
+        - unit
+        - stock
+        - salesCount
+        - status
+        - calories
+        - protein
+        - fat
+        - carbohydrate
+        - sodium
+        - allergens
+        - storageType
+        - shelfLifeDays
+        - healthTags
+        - available
+        - specs
+        - options
+        - images
+      properties:
+        id:
+          type: integer
+          format: int64
+        categoryId:
+          type: integer
+          format: int64
+        categoryName:
+          type: string
+        name:
+          type: string
+        subtitle:
+          type: string
+        cover:
+          type: string
+        detail:
+          type: string
+        productType:
+          type: integer
+        price:
+          type: number
+        originalPrice:
+          type: number
+        unit:
+          type: string
+        stock:
+          type: integer
+        salesCount:
+          type: integer
+        status:
+          type: integer
+        calories:
+          type: integer
+        protein:
+          type: number
+        fat:
+          type: number
+        carbohydrate:
+          type: number
+        sodium:
+          type: number
+        nutritionDesc:
+          type: string
+        allergens:
+          type: array
+          items:
+            type: string
+        storageType:
+          type: integer
+        storageLabel:
+          type: string
+        shelfLifeDays:
+          type: integer
+        producer:
+          type: string
+        heatingMethod:
+          type: string
+        healthTags:
+          type: array
+          items:
+            type: string
+        available:
+          type: boolean
+        specs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductSpec'
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductOption'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductImage'
+    ShopProductPage:
+      type: object
+      additionalProperties: false
+      required:
+        - records
+        - total
+        - current
+        - size
+        - pages
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShopProduct'
+        total:
+          type: integer
+          format: int64
+        current:
+          type: integer
+          format: int64
+        size:
+          type: integer
+          format: int64
+        pages:
+          type: integer
+          format: int64
     ResultShopLoginResult:
       type: object
       required:
@@ -119,6 +626,97 @@ components:
           type: string
         data:
           $ref: '#/components/schemas/ShopLoginResult'
+        timestamp:
+          type: integer
+          format: int64
+    ResultCategoryNodeList:
+      type: object
+      required:
+        - code
+        - message
+        - data
+        - timestamp
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryNode'
+        timestamp:
+          type: integer
+          format: int64
+    ResultShopProductPage:
+      type: object
+      required:
+        - code
+        - message
+        - data
+        - timestamp
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ShopProductPage'
+        timestamp:
+          type: integer
+          format: int64
+    ResultShopProductDetail:
+      type: object
+      required:
+        - code
+        - message
+        - data
+        - timestamp
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ShopProductDetail'
+        timestamp:
+          type: integer
+          format: int64
+    ResultShopProductList:
+      type: object
+      required:
+        - code
+        - message
+        - data
+        - timestamp
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShopProduct'
+        timestamp:
+          type: integer
+          format: int64
+    ResultStringList:
+      type: object
+      required:
+        - code
+        - message
+        - data
+        - timestamp
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            type: string
         timestamp:
           type: integer
           format: int64

@@ -69,6 +69,9 @@ panel:
   pureMultiTagsCache: MultiTags Cache
 menus:
   pureHome: Home
+  pureCommerce: Product Manage
+  pureCategory: Category Manage
+  pureProduct: Product List
   pureLogin: Login
   pureEmpty: Empty Page
   pureTable: Table

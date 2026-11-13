@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.freshmeal.mapper.ProductMapper">
+
+    <!-- 用户端商品分页：分类可见集、关键词、价格与热量区间、健康标签交集，全部条件可选叠加 -->
+    <select id="selectShopPage" resultType="com.freshmeal.entity.Product">
+        SELECT *
+        FROM t_product
+        <where>
+            deleted = 0
+            <if test="categoryIds != null and categoryIds.size() > 0">
+                AND category_id IN
+                <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">
+                    #{categoryId}
+                </foreach>
+            </if>
+            <if test="query.keyword != null and query.keyword != ''">
+                <choose>
+                    <when test="keywordLike">
+                        AND name LIKE CONCAT('%', #{query.keyword}, '%')
+                    </when>
+                    <otherwise>
+                        <!-- ngram 分词按短语匹配，等价于名称子串包含，避免 bigram 或关系误命中 -->
+                        AND MATCH(name) AGAINST(CONCAT('"', #{query.keyword}, '"') IN BOOLEAN MODE)
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="query.minPrice != null">
+                AND price &gt;= #{query.minPrice}
+            </if>
+            <if test="query.maxPrice != null">
+                AND price &lt;= #{query.maxPrice}
+            </if>
+            <if test="query.minCalories != null">
+                AND calories &gt;= #{query.minCalories}
+            </if>
+            <if test="query.maxCalories != null">
+                AND calories &lt;= #{query.maxCalories}
+            </if>
+            <foreach collection="healthTags" item="healthTag">
+                AND FIND_IN_SET(#{healthTag}, health_tags) &gt; 0
+            </foreach>
+        </where>
+        ORDER BY
+        <choose>
+            <when test="query.sort == 'sales'">sales_count DESC, id DESC</when>
+            <when test="query.sort == 'priceAsc'">price ASC, id ASC</when>
+            <when test="query.sort == 'priceDesc'">price DESC, id ASC</when>
+            <otherwise>sort ASC, id ASC</otherwise>
+        </choose>
+    </select>
+
+    <!-- 健康标签候选集：仅取上架商品的标签原文，逗号拆分在服务层完成 -->
+    <select id="selectShopHealthTags" resultType="string">
+        SELECT DISTINCT health_tags
+        FROM t_product
+        WHERE deleted = 0
+          AND status = 1
+          AND health_tags IS NOT NULL
+          AND health_tags != ''
+    </select>
+</mapper>

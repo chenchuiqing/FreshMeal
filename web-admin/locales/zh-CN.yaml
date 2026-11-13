@@ -69,6 +69,9 @@ panel:
   pureMultiTagsCache: 页签持久化
 menus:
   pureHome: 首页
+  pureCommerce: 商品管理
+  pureCategory: 分类管理
+  pureProduct: 商品列表
   pureLogin: 登录
   pureEmpty: 无Layout页
   pureTable: 表格

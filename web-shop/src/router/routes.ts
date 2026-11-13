@@ -50,6 +50,15 @@ export const routes: RouteRecordRaw[] = [
           hideHeader: true,
         },
       },
+      {
+        path: 'product/:id',
+        name: 'productDetail',
+        component: () => import('@/views/product/detail.vue'),
+        meta: {
+          title: '商品详情',
+          keepAlive: false,
+        },
+      },
     ],
   },
   {
