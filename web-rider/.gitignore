@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+*.local
+*.log
+.eslintcache
+test-results
+playwright-report
