@@ -113,8 +113,9 @@ const logout = async () => {
 <style scoped lang="scss">
 .member-page {
   display: grid;
+  grid-template-columns: minmax(0, 36rem);
   gap: var(--space-4);
-  align-content: start;
+  place-content: start center;
   padding-top: calc(var(--space-5) + env(safe-area-inset-top));
 }
 
