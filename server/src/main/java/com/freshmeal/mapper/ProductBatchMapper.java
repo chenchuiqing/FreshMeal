@@ -48,4 +48,16 @@ public interface ProductBatchMapper extends BaseMapper<ProductBatch> {
             WHERE id = #{id}
             """)
     int restoreStock(@Param("id") Long id, @Param("quantity") int quantity);
+
+    @Update("""
+            UPDATE t_product_batch
+            SET stock = stock - #{quantity},
+                status = #{status},
+                update_time = CURRENT_TIMESTAMP
+            WHERE id = #{id} AND stock >= #{quantity}
+            """)
+    int reportLoss(
+            @Param("id") Long id,
+            @Param("quantity") int quantity,
+            @Param("status") int status);
 }

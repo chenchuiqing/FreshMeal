@@ -69,10 +69,15 @@ panel:
   pureMultiTagsCache: 页签持久化
 menus:
   pureHome: 首页
-  pureCommerce: 商品管理
+  pureCommerce: 业务管理
   pureCategory: 分类管理
   pureProduct: 商品列表
   pureDelivery: 配送调度
+  pureOrderManage: 订单管理
+  pureRiderManage: 配送员管理
+  pureDeliveryConfig: 配送配置
+  pureDispatchLog: 派单日志
+  pureInventory: 库存管理
   pureLogin: 登录
   pureEmpty: 无Layout页
   pureTable: 表格

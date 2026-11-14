@@ -69,10 +69,15 @@ panel:
   pureMultiTagsCache: MultiTags Cache
 menus:
   pureHome: Home
-  pureCommerce: Product Manage
+  pureCommerce: Business Manage
   pureCategory: Category Manage
   pureProduct: Product List
   pureDelivery: Delivery Dispatch
+  pureOrderManage: Order Manage
+  pureRiderManage: Rider Manage
+  pureDeliveryConfig: Delivery Config
+  pureDispatchLog: Dispatch Logs
+  pureInventory: Inventory
   pureLogin: Login
   pureEmpty: Empty Page
   pureTable: Table

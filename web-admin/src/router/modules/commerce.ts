@@ -42,6 +42,61 @@ export default {
         keepAlive: true,
         roles: ["admin"]
       }
+    },
+    {
+      path: "/commerce/order/index",
+      name: "CommerceOrder",
+      component: () => import("@/views/order/index.vue"),
+      meta: {
+        title: $t("menus.pureOrderManage"),
+        icon: "ri/file-list-3-line",
+        keepAlive: true,
+        roles: ["admin"]
+      }
+    },
+    {
+      path: "/commerce/rider/index",
+      name: "CommerceRider",
+      component: () => import("@/views/delivery/rider.vue"),
+      meta: {
+        title: $t("menus.pureRiderManage"),
+        icon: "ri/riders-line",
+        keepAlive: true,
+        roles: ["admin"]
+      }
+    },
+    {
+      path: "/commerce/delivery-config/index",
+      name: "CommerceDeliveryConfig",
+      component: () => import("@/views/delivery/config.vue"),
+      meta: {
+        title: $t("menus.pureDeliveryConfig"),
+        icon: "ri/time-line",
+        keepAlive: true,
+        roles: ["admin"]
+      }
+    },
+    {
+      path: "/commerce/dispatch/index",
+      name: "CommerceDispatchLog",
+      component: () => import("@/views/delivery/dispatch.vue"),
+      meta: {
+        title: $t("menus.pureDispatchLog"),
+        icon: "ri/route-line",
+        keepAlive: true,
+        roles: ["admin"]
+      }
+    },
+    {
+      path: "/commerce/inventory/index",
+      name: "CommerceInventory",
+      component: () => import("@/views/inventory/index.vue"),
+      meta: {
+        title: $t("menus.pureInventory"),
+        icon: "ri/archive-line",
+        keepAlive: true,
+        roles: ["admin"]
+      }
     }
   ]
 } satisfies RouteConfigsTable;

@@ -49,6 +49,19 @@ public interface ProductMapper extends BaseMapper<Product> {
 
     @Update("""
             UPDATE t_product
+            SET stock = stock - #{quantity},
+                version = version + 1,
+                update_time = CURRENT_TIMESTAMP
+            WHERE id = #{id}
+              AND deleted = 0
+              AND stock >= #{quantity}
+            """)
+    int deductStockForInventory(
+            @Param("id") Long id,
+            @Param("quantity") int quantity);
+
+    @Update("""
+            UPDATE t_product
             SET sales_count = sales_count + #{quantity},
                 update_time = CURRENT_TIMESTAMP
             WHERE id = #{id} AND deleted = 0
