@@ -268,8 +268,98 @@ export interface DashboardRegion {
   revenue: number;
 }
 
+export interface AdminCoupon {
+  id: number;
+  name: string;
+  type: number;
+  threshold: number;
+  amount: number;
+  startTime: string;
+  endTime: string;
+  totalCount: number;
+  receivedCount: number;
+  usedCount: number;
+  status: number;
+}
+
+export interface AdminCouponPayload {
+  name: string;
+  type: number;
+  threshold: number;
+  amount: number;
+  startTime: string;
+  endTime: string;
+  totalCount: number;
+}
+
+export interface AdminReview {
+  id: number;
+  userId: number;
+  username: string | null;
+  nickname: string | null;
+  orderId: number;
+  orderNo: string | null;
+  productId: number;
+  productName: string;
+  rating: number;
+  content: string | null;
+  images: string[];
+  reply: string | null;
+  createTime: string;
+}
+
+export interface AdminRefund {
+  id: number;
+  orderId: number;
+  orderNo: string;
+  userId: number;
+  username: string | null;
+  nickname: string | null;
+  amount: number;
+  reason: string;
+  status: number;
+  previousStatus: number;
+  adminReply: string | null;
+  createTime: string;
+  updateTime: string;
+}
+
+export interface AdminBanner {
+  id: number;
+  title: string;
+  image: string;
+  link: string | null;
+  sort: number;
+  status: number;
+  createTime: string;
+}
+
+export interface AdminBannerPayload {
+  title: string;
+  image: string;
+  link?: string;
+  sort?: number;
+  status?: number;
+}
+
+export interface AdminNotice {
+  id: number;
+  title: string;
+  content: string | null;
+  type: number;
+  status: number;
+  createTime: string;
+}
+
+export interface AdminNoticePayload {
+  title: string;
+  content?: string;
+  type?: number;
+  status?: number;
+}
+
 const request = <T>(
-  method: "get" | "post" | "put",
+  method: "get" | "post" | "put" | "delete",
   url: string,
   data?: object
 ) => http.request<AdminResult<T>>(method, url, data ? { data } : undefined);
@@ -411,3 +501,98 @@ export const getDashboardRank = (limit = 10) =>
 
 export const getDashboardRegion = () =>
   request<DashboardRegion[]>("get", "/api/admin/dashboard/region");
+
+export const getAdminCoupons = () =>
+  http.request<AdminResult<AdminPageResult<AdminCoupon>>>(
+    "get",
+    "/api/admin/coupon/page"
+  );
+
+export const createAdminCoupon = (data: AdminCouponPayload) =>
+  request<number>("post", "/api/admin/coupon", data);
+
+export const updateAdminCouponStatus = (id: number, status: number) =>
+  request<void>("put", `/api/admin/coupon/${id}/status`, { status });
+
+export const issueAdminCoupon = (id: number, userId: number) =>
+  request<void>("post", `/api/admin/coupon/${id}/issue`, { userId });
+
+export const getAdminReviews = (params: {
+  current?: number;
+  size?: number;
+  orderNo?: string;
+  rating?: number;
+}) =>
+  http.request<AdminResult<AdminPageResult<AdminReview>>>(
+    "get",
+    "/api/admin/review/page",
+    { params }
+  );
+
+export const replyAdminReview = (id: number, reply: string) =>
+  request<void>("put", `/api/admin/review/${id}/reply`, { reply });
+
+export const deleteAdminReview = (id: number) =>
+  request<void>("delete", `/api/admin/review/${id}`);
+
+export const getAdminBanners = () =>
+  http.request<AdminResult<AdminPageResult<AdminBanner>>>(
+    "get",
+    "/api/admin/content/banner"
+  );
+
+export const createAdminBanner = (data: AdminBannerPayload) =>
+  request<number>("post", "/api/admin/content/banner", data);
+
+export const updateAdminBanner = (id: number, data: AdminBannerPayload) =>
+  request<void>("put", `/api/admin/content/banner/${id}`, data);
+
+export const deleteAdminBanner = (id: number) =>
+  request<void>("delete", `/api/admin/content/banner/${id}`);
+
+export const getAdminNotices = () =>
+  http.request<AdminResult<AdminPageResult<AdminNotice>>>(
+    "get",
+    "/api/admin/content/notice"
+  );
+
+export const createAdminNotice = (data: AdminNoticePayload) =>
+  request<number>("post", "/api/admin/content/notice", data);
+
+export const updateAdminNotice = (id: number, data: AdminNoticePayload) =>
+  request<void>("put", `/api/admin/content/notice/${id}`, data);
+
+export const deleteAdminNotice = (id: number) =>
+  request<void>("delete", `/api/admin/content/notice/${id}`);
+
+export const getAdminRefunds = (params: {
+  current?: number;
+  size?: number;
+  status?: number;
+}) =>
+  http.request<AdminResult<AdminPageResult<AdminRefund>>>(
+    "get",
+    "/api/admin/refund/page",
+    { params }
+  );
+
+export const decideAdminRefund = (
+  id: number,
+  status: number,
+  adminReply?: string
+) =>
+  request<void>("put", `/api/admin/refund/${id}/decision`, {
+    status,
+    adminReply
+  });
+
+export const exportAdminOrders = (params: {
+  startTime?: string;
+  endTime?: string;
+}) =>
+  http.request<Blob>(
+    "get",
+    "/api/admin/report/orders.xlsx",
+    { params },
+    { responseType: "blob" }
+  );

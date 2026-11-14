@@ -21,6 +21,14 @@ export default defineConfig({
     globals: true,
     include: ['tests/**/*.test.ts'],
     setupFiles: ['tests/setup.ts'],
+    css: {
+      include: [/\.css$/],
+    },
+    server: {
+      deps: {
+        inline: ['vant'],
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

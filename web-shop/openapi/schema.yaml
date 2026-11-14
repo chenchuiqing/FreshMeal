@@ -649,6 +649,273 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResultNull'
+  /shop/coupon/available:
+    get:
+      operationId: listAvailableCoupons
+      summary: 查询可领取优惠券
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCouponList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/coupon/list:
+    get:
+      operationId: listUserCoupons
+      summary: 查询我的优惠券
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultUserCouponList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/coupon/{id}/receive:
+    post:
+      operationId: receiveCoupon
+      summary: 领取优惠券
+      parameters:
+        - $ref: '#/components/parameters/ShopCouponId'
+      responses:
+        '200':
+          description: 领取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultUserCoupon'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/order/{orderNo}/review:
+    get:
+      operationId: listOrderReviews
+      summary: 查询订单评价
+      parameters:
+        - $ref: '#/components/parameters/ShopOrderNo'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultReviewList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+    post:
+      operationId: submitOrderReview
+      summary: 提交订单评价
+      parameters:
+        - $ref: '#/components/parameters/ShopOrderNo'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewSubmitRequest'
+      responses:
+        '200':
+          description: 提交成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultReview'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/favorite/ids:
+    get:
+      operationId: listFavoriteIds
+      summary: 查询收藏商品ID
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultLongList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/favorite/page:
+    get:
+      operationId: listFavorites
+      summary: 分页查询收藏商品
+      parameters:
+        - $ref: '#/components/parameters/ShopPageCurrent'
+        - $ref: '#/components/parameters/ShopPageSize'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultShopProductPage'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/favorite/{productId}:
+    post:
+      operationId: toggleFavorite
+      summary: 收藏或取消收藏商品
+      parameters:
+        - $ref: '#/components/parameters/ShopProductId'
+      responses:
+        '200':
+          description: 操作成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultBoolean'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/history/{productId}:
+    post:
+      operationId: recordBrowsingHistory
+      summary: 记录商品浏览历史
+      parameters:
+        - $ref: '#/components/parameters/ShopProductId'
+      responses:
+        '200':
+          description: 记录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/history/page:
+    get:
+      operationId: listBrowsingHistory
+      summary: 分页查询浏览历史
+      parameters:
+        - $ref: '#/components/parameters/ShopPageCurrent'
+        - $ref: '#/components/parameters/ShopPageSize'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultShopProductPage'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/content/banner:
+    get:
+      operationId: listBanners
+      summary: 查询首页轮播图
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultBannerList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/content/notice:
+    get:
+      operationId: listNotices
+      summary: 查询系统公告
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNoticeList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/refund/list:
+    get:
+      operationId: listRefunds
+      summary: 查询我的售后申请
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultRefundList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/refund/{orderNo}:
+    post:
+      operationId: requestRefund
+      summary: 申请售后退款
+      parameters:
+        - $ref: '#/components/parameters/ShopOrderNo'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRequest'
+      responses:
+        '200':
+          description: 申请成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
 components:
   parameters:
     ShopAddressId:
@@ -672,6 +939,35 @@ components:
       schema:
         type: string
         maxLength: 32
+    ShopCouponId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    ShopProductId:
+      name: productId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    ShopPageCurrent:
+      name: current
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    ShopPageSize:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
   schemas:
     AddressSaveRequest:
       type: object
@@ -910,6 +1206,9 @@ components:
           items:
             type: integer
             format: int64
+        userCouponId:
+          type: integer
+          format: int64
     Freight:
       type: object
       additionalProperties: false
@@ -990,6 +1289,9 @@ components:
         remark:
           type: string
           maxLength: 200
+        userCouponId:
+          type: integer
+          format: int64
     DeliverySlot:
       type: object
       additionalProperties: false
@@ -1255,6 +1557,218 @@ components:
         pages:
           type: integer
           format: int64
+    Coupon:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - type
+        - threshold
+        - amount
+        - startTime
+        - endTime
+        - totalCount
+        - receivedCount
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        type:
+          type: integer
+          enum: [1, 2]
+        threshold:
+          type: number
+        amount:
+          type: number
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        totalCount:
+          type: integer
+        receivedCount:
+          type: integer
+        status:
+          type: integer
+    UserCoupon:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - couponId
+        - name
+        - type
+        - threshold
+        - amount
+        - status
+        - expireTime
+      properties:
+        id:
+          type: integer
+          format: int64
+        couponId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        type:
+          type: integer
+        threshold:
+          type: number
+        amount:
+          type: number
+        status:
+          type: integer
+        orderId:
+          type: integer
+          format: int64
+        receiveTime:
+          type: string
+          format: date-time
+        useTime:
+          type: string
+          format: date-time
+        expireTime:
+          type: string
+          format: date-time
+    ReviewSubmitRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - productId
+        - rating
+      properties:
+        productId:
+          type: integer
+          format: int64
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        content:
+          type: string
+          maxLength: 500
+        images:
+          type: array
+          maxItems: 9
+          items:
+            type: string
+            maxLength: 500
+    Review:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - userId
+        - productId
+        - productName
+        - rating
+        - images
+        - createTime
+      properties:
+        id:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        productId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        rating:
+          type: integer
+        content:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        reply:
+          type: string
+        createTime:
+          type: string
+          format: date-time
+    Banner:
+      type: object
+      additionalProperties: false
+      required: [id, title, image]
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        image:
+          type: string
+        link:
+          type: string
+    Notice:
+      type: object
+      additionalProperties: false
+      required: [id, title, type, createTime]
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        content:
+          type: string
+        type:
+          type: integer
+        createTime:
+          type: string
+          format: date-time
+    RefundRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+    Refund:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - orderNo
+        - amount
+        - reason
+        - status
+        - previousStatus
+        - createTime
+        - updateTime
+      properties:
+        id:
+          type: integer
+          format: int64
+        orderNo:
+          type: string
+        amount:
+          type: number
+        reason:
+          type: string
+        status:
+          type: integer
+        previousStatus:
+          type: integer
+        adminReply:
+          type: string
+        createTime:
+          type: string
+          format: date-time
+        updateTime:
+          type: string
+          format: date-time
     ResultAddress:
       type: object
       required: [code, message, data, timestamp]
@@ -1849,6 +2363,151 @@ components:
           type: array
           items:
             type: string
+        timestamp:
+          type: integer
+          format: int64
+    ResultCouponList:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Coupon'
+        timestamp:
+          type: integer
+          format: int64
+    ResultUserCouponList:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserCoupon'
+        timestamp:
+          type: integer
+          format: int64
+    ResultUserCoupon:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/UserCoupon'
+        timestamp:
+          type: integer
+          format: int64
+    ResultReviewList:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        timestamp:
+          type: integer
+          format: int64
+    ResultReview:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Review'
+        timestamp:
+          type: integer
+          format: int64
+    ResultLongList:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            type: integer
+            format: int64
+        timestamp:
+          type: integer
+          format: int64
+    ResultBoolean:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: boolean
+        timestamp:
+          type: integer
+          format: int64
+    ResultBannerList:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Banner'
+        timestamp:
+          type: integer
+          format: int64
+    ResultNoticeList:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notice'
+        timestamp:
+          type: integer
+          format: int64
+    ResultRefundList:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Refund'
         timestamp:
           type: integer
           format: int64

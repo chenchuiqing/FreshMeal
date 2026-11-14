@@ -97,6 +97,17 @@ export default {
         keepAlive: true,
         roles: ["admin"]
       }
+    },
+    {
+      path: "/commerce/marketing/index",
+      name: "CommerceMarketing",
+      component: () => import("@/views/marketing.vue"),
+      meta: {
+        title: $t("menus.pureMarketing"),
+        icon: "ri/coupon-3-line",
+        keepAlive: true,
+        roles: ["admin"]
+      }
     }
   ]
 } satisfies RouteConfigsTable;

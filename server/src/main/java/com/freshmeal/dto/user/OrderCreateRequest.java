@@ -21,6 +21,8 @@ public record OrderCreateRequest(
         LocalDate deliverySlotDate,
 
         @Size(max = 200, message = "订单备注不能超过200个字符")
-        String remark
+        String remark,
+
+        Long userCouponId
 ) {
 }

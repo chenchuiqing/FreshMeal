@@ -544,10 +544,14 @@ watch(
 }
 
 .sort-tab {
+  min-width: 0;
   min-height: var(--touch-target);
   padding: 0 var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: var(--text-secondary);
   color: var(--color-text-secondary);
+  white-space: nowrap;
   background: transparent;
   border: 0;
 }
@@ -595,6 +599,10 @@ watch(
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
+
+  > * {
+    min-width: 0;
+  }
 }
 
 .empty-action {

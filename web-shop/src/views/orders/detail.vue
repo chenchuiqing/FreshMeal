@@ -129,6 +129,124 @@
         </dl>
       </section>
 
+      <section
+        v-if="order.status === 6 || reviews?.length"
+        class="detail-section surface-card"
+      >
+        <div class="section-title">
+          <h2>订单评价</h2>
+          <van-button
+            v-if="canReview"
+            plain
+            size="small"
+            type="primary"
+            @click="reviewFormVisible = !reviewFormVisible"
+          >
+            {{ reviewFormVisible ? '收起' : '写评价' }}
+          </van-button>
+        </div>
+        <div v-if="reviews?.length" class="review-list">
+          <article v-for="review in reviews" :key="review.id" class="review-item">
+            <div class="review-item__head">
+              <strong>{{ review.productName }}</strong>
+              <van-rate :model-value="review.rating" readonly size="14px" />
+            </div>
+            <p v-if="review.content">{{ review.content }}</p>
+            <small>{{ formatDateTime(review.createTime) }}</small>
+            <p v-if="review.reply" class="review-reply">
+              商家回复：{{ review.reply }}
+            </p>
+          </article>
+        </div>
+        <p v-else class="empty-hint">订单完成后即可评价商品。</p>
+
+        <form v-if="reviewFormVisible" class="inline-form" @submit.prevent="submitReview">
+          <label>
+            评价商品
+            <van-radio-group v-model="reviewProductId" class="review-products">
+              <van-radio
+                v-for="item in reviewableItems"
+                :key="item.productId"
+                :name="item.productId"
+              >
+                {{ item.productName }}
+              </van-radio>
+            </van-radio-group>
+          </label>
+          <label>
+            评分
+            <van-rate v-model="reviewRating" />
+          </label>
+          <label>
+            评价内容
+            <van-field
+              v-model="reviewContent"
+              type="textarea"
+              rows="3"
+              maxlength="500"
+              show-word-limit
+              placeholder="分享一下这次用餐体验（选填）"
+            />
+          </label>
+          <van-button
+            block
+            type="primary"
+            native-type="submit"
+            :loading="submittingReview"
+          >
+            提交评价
+          </van-button>
+        </form>
+      </section>
+
+      <section
+        v-if="currentRefund || refundAllowed"
+        class="detail-section surface-card"
+      >
+        <div class="section-title">
+          <h2>售后退款</h2>
+          <van-tag v-if="currentRefund" :type="refundTagType">
+            {{ refundStatusText }}
+          </van-tag>
+        </div>
+        <template v-if="currentRefund">
+          <p>{{ currentRefund.reason }}</p>
+          <p v-if="currentRefund.adminReply" class="refund-reply">
+            处理说明：{{ currentRefund.adminReply }}
+          </p>
+          <small>申请时间 {{ formatDateTime(currentRefund.createTime) }}</small>
+        </template>
+        <template v-else>
+          <p>订单已支付，如遇商品或配送问题，可提交售后申请。</p>
+          <form v-if="refundFormVisible" class="inline-form" @submit.prevent="submitRefund">
+            <van-field
+              v-model="refundReason"
+              type="textarea"
+              rows="3"
+              maxlength="500"
+              show-word-limit
+              placeholder="请描述需要退款的原因"
+            />
+            <van-button
+              block
+              type="danger"
+              native-type="submit"
+              :loading="submittingRefund"
+            >
+              提交退款申请
+            </van-button>
+          </form>
+          <van-button
+            v-else
+            plain
+            type="danger"
+            @click="refundFormVisible = true"
+          >
+            申请售后退款
+          </van-button>
+        </template>
+      </section>
+
       <div class="detail-actions">
         <template v-if="order.status === 0">
           <van-button
@@ -149,6 +267,20 @@
             去支付
           </van-button>
         </template>
+        <template v-else-if="order.status === 1">
+          <van-button
+            block
+            plain
+            type="danger"
+            :loading="cancelling"
+            @click="cancelCurrentOrder"
+          >
+            取消订单
+          </van-button>
+          <van-button block plain @click="router.push('/orders')">
+            返回订单列表
+          </van-button>
+        </template>
         <van-button v-else block plain @click="router.push('/orders')">
           返回订单列表
         </van-button>
@@ -165,6 +297,12 @@ import {
   getOrderDeliveryTrace,
   initiatePayment,
 } from '@/api/modules/trade';
+import {
+  listOrderReviews,
+  listRefunds,
+  requestRefund,
+  submitOrderReview,
+} from '@/api/modules/marketing';
 import { isApiError } from '@/types/api/common';
 import { formatPrice } from '@/utils/product';
 
@@ -175,6 +313,14 @@ const router = useRouter();
 const queryClient = useQueryClient();
 const cancelling = ref(false);
 const paying = ref(false);
+const reviewFormVisible = ref(false);
+const reviewProductId = ref<number | undefined>(undefined);
+const reviewRating = ref(5);
+const reviewContent = ref('');
+const submittingReview = ref(false);
+const refundFormVisible = ref(false);
+const refundReason = ref('');
+const submittingRefund = ref(false);
 const rawOrderNo = Array.isArray(route.params.orderNo)
   ? route.params.orderNo[0]
   : route.params.orderNo;
@@ -213,6 +359,18 @@ const { data: deliveryTrace } = useQuery({
   refetchInterval: 10_000,
 });
 
+const { data: reviews } = useQuery({
+  queryKey: ['shop', 'order-reviews', orderNo],
+  queryFn: ({ signal }) => listOrderReviews(orderNo.value, signal),
+  enabled: computed(() => validOrderNo.value && !!order.value),
+});
+
+const { data: refunds } = useQuery({
+  queryKey: ['shop', 'refunds'],
+  queryFn: ({ signal }) => listRefunds(signal),
+  enabled: computed(() => validOrderNo.value && !!order.value),
+});
+
 const errorText = computed(() =>
   isApiError(error.value) ? error.value.message : '订单加载失败',
 );
@@ -241,6 +399,52 @@ const paymentStatusText = computed(() => {
   if (status === 3) return '已关闭';
   return '待支付';
 });
+
+const reviewedProductIds = computed(
+  () => new Set((reviews.value ?? []).map(review => review.productId)),
+);
+const reviewableItems = computed(
+  () =>
+    (order.value?.items ?? []).filter(
+      item => !reviewedProductIds.value.has(item.productId),
+    ),
+);
+const canReview = computed(
+  () => order.value?.status === 6 && reviewableItems.value.length > 0,
+);
+const currentRefund = computed(() =>
+  refunds.value?.find(refund => refund.orderNo === orderNo.value),
+);
+const refundAllowed = computed(() => {
+  const currentOrder = order.value;
+  return Boolean(
+    currentOrder &&
+      currentOrder.payStatus === 1 &&
+      currentOrder.status >= 1 &&
+      currentOrder.status <= 6 &&
+      !currentRefund.value,
+  );
+});
+const refundStatusText = computed(() => {
+  const status = currentRefund.value?.status;
+  if (status === 0) return '处理中';
+  return status === 1 ? '已退款' : '已驳回';
+});
+const refundTagType = computed(() => {
+  const status = currentRefund.value?.status;
+  if (status === 0) return 'warning';
+  return status === 1 ? 'success' : 'danger';
+});
+
+watch(
+  reviewableItems,
+  items => {
+    if (!reviewProductId.value || !items.some(item => item.productId === reviewProductId.value)) {
+      reviewProductId.value = items[0]?.productId;
+    }
+  },
+  { immediate: true },
+);
 
 async function cancelCurrentOrder() {
   if (!order.value || cancelling.value) return;
@@ -281,6 +485,51 @@ async function goPay() {
     showToast(isApiError(error) ? error.message : '发起支付失败');
   } finally {
     paying.value = false;
+  }
+}
+
+async function submitReview() {
+  const product = reviewableItems.value.find(
+    item => item.productId === reviewProductId.value,
+  );
+  if (!product || submittingReview.value) return;
+  submittingReview.value = true;
+  try {
+    await submitOrderReview(orderNo.value, {
+      productId: product.productId,
+      rating: reviewRating.value,
+      content: reviewContent.value.trim() || undefined,
+      images: [],
+    });
+    showToast({ message: '评价已提交', icon: 'success' });
+    reviewFormVisible.value = false;
+    reviewContent.value = '';
+    await queryClient.invalidateQueries({
+      queryKey: ['shop', 'order-reviews', orderNo],
+    });
+  } catch (error) {
+    showToast(isApiError(error) ? error.message : '评价提交失败');
+  } finally {
+    submittingReview.value = false;
+  }
+}
+
+async function submitRefund() {
+  if (!refundReason.value.trim() || submittingRefund.value) return;
+  submittingRefund.value = true;
+  try {
+    await requestRefund(orderNo.value, { reason: refundReason.value.trim() });
+    showToast({ message: '退款申请已提交', icon: 'success' });
+    refundFormVisible.value = false;
+    refundReason.value = '';
+    await queryClient.invalidateQueries({
+      queryKey: ['shop', 'order', orderNo],
+    });
+    await queryClient.invalidateQueries({ queryKey: ['shop', 'refunds'] });
+  } catch (error) {
+    showToast(isApiError(error) ? error.message : '退款申请失败');
+  } finally {
+    submittingRefund.value = false;
   }
 }
 
@@ -532,6 +781,67 @@ function formatDateTime(value: string) {
     text-align: right;
     white-space: nowrap;
   }
+}
+
+.review-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.review-item {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  p,
+  small {
+    margin: 0;
+  }
+
+  small {
+    color: var(--color-text-muted);
+  }
+}
+
+.review-item__head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.review-reply,
+.refund-reply {
+  padding: var(--space-2);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+
+.empty-hint {
+  color: var(--color-text-secondary);
+}
+
+.inline-form {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+
+  label {
+    display: grid;
+    gap: var(--space-2);
+    color: var(--color-text-secondary);
+  }
+}
+
+.review-products {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }
 
 .detail-actions {

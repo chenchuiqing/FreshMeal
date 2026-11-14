@@ -78,6 +78,7 @@ menus:
   pureDeliveryConfig: Delivery Config
   pureDispatchLog: Dispatch Logs
   pureInventory: Inventory
+  pureMarketing: Marketing & Refunds
   pureLogin: Login
   pureEmpty: Empty Page
   pureTable: Table

@@ -78,6 +78,7 @@ menus:
   pureDeliveryConfig: 配送配置
   pureDispatchLog: 派单日志
   pureInventory: 库存管理
+  pureMarketing: 营销与售后
   pureLogin: 登录
   pureEmpty: 无Layout页
   pureTable: 表格

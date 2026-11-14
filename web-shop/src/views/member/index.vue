@@ -53,6 +53,27 @@
           </span>
           <van-icon name="arrow" />
         </RouterLink>
+        <RouterLink class="account-link" to="/member/coupons">
+          <span>
+            <strong>我的优惠券</strong>
+            <small>领取优惠券并查看使用状态</small>
+          </span>
+          <van-icon name="arrow" />
+        </RouterLink>
+        <RouterLink class="account-link" to="/member/favorites">
+          <span>
+            <strong>我的收藏</strong>
+            <small>保存常点的健康餐品</small>
+          </span>
+          <van-icon name="arrow" />
+        </RouterLink>
+        <RouterLink class="account-link" to="/member/history">
+          <span>
+            <strong>浏览历史</strong>
+            <small>回看最近查看过的商品</small>
+          </span>
+          <van-icon name="arrow" />
+        </RouterLink>
       </section>
 
       <van-button

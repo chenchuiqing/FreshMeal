@@ -29,6 +29,7 @@ public class OrderStatusManager {
     private final ProductMapper productMapper;
     private final PaymentMapper paymentMapper;
     private final InventoryService inventoryService;
+    private final CouponService couponService;
     private final ObjectProvider<DeliveryOrderService> deliveryOrderServiceProvider;
 
     @Transactional(rollbackFor = Exception.class)
@@ -54,6 +55,7 @@ public class OrderStatusManager {
                 markCancelledAndRestore(order, operator);
                 cancelDeliveryOrder(order);
             }
+            case REFUNDED -> markRefunded(order, operator);
             case FINISHED -> {
                 markFinished(order);
                 syncDeliveryStatus(order, DeliveryStatus.DELIVERED);
@@ -109,6 +111,7 @@ public class OrderStatusManager {
         patch.setPayStatus(0);
         orderMapper.updateById(patch);
         paymentMapper.closePendingByOrder(order.getId());
+        couponService.release(order.getUserCouponId());
         inventoryService.restoreForOrder(order.getOrderNo(), operator.operatorId(),
                 operator.remark());
     }
@@ -120,6 +123,23 @@ public class OrderStatusManager {
         patch.setId(order.getId());
         patch.setFinishTime(finishTime);
         orderMapper.updateById(patch);
+    }
+
+    private void markRefunded(Order order, OrderOperator operator) {
+        order.setPayStatus(2);
+        Order patch = new Order();
+        patch.setId(order.getId());
+        patch.setPayStatus(2);
+        orderMapper.updateById(patch);
+        paymentMapper.update(null,
+                com.baomidou.mybatisplus.core.toolkit.Wrappers
+                        .<com.freshmeal.entity.Payment>lambdaUpdate()
+                        .eq(com.freshmeal.entity.Payment::getOrderId, order.getId())
+                        .set(com.freshmeal.entity.Payment::getStatus, 2));
+        couponService.release(order.getUserCouponId());
+        inventoryService.restoreForOrder(order.getOrderNo(), operator.operatorId(),
+                operator.remark());
+        cancelDeliveryOrder(order);
     }
 
     private void insertStatusLog(Order order, OrderStatus source, OrderStatus target,

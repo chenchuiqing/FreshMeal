@@ -57,6 +57,7 @@ const originalPriceText = computed(() =>
 .product-card {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   height: 100%;
   overflow: hidden;
   color: var(--color-text);

@@ -53,6 +53,19 @@
             >{{ tag }}</van-tag
           >
         </div>
+        <div class="summary__actions">
+          <button
+            type="button"
+            class="favorite-toggle"
+            :class="{ 'favorite-toggle--active': isFavorite }"
+            :disabled="togglingFavorite"
+            :aria-pressed="isFavorite"
+            @click="toggleFavoriteAction"
+          >
+            <van-icon :name="isFavorite ? 'star' : 'star-o'" />
+            {{ isFavorite ? '已收藏' : '收藏商品' }}
+          </button>
+        </div>
       </section>
 
       <section v-if="activeSpecs.length > 0" class="block">
@@ -177,8 +190,13 @@
 </template>
 
 <script setup lang="ts">
-import { useQuery } from '@tanstack/vue-query';
+import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { getShopProductDetail } from '@/api/modules/product';
+import {
+  getFavoriteIds,
+  recordBrowsingHistory,
+  toggleFavorite,
+} from '@/api/modules/engagement';
 import { addCartItem } from '@/api/modules/trade';
 import type { ProductOptionItem } from '@/api/modules/product';
 import { isApiError } from '@/types/api/common';
@@ -205,7 +223,9 @@ interface ActiveOptionGroup {
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
+const queryClient = useQueryClient();
 const addingToCart = ref(false);
+const togglingFavorite = ref(false);
 const rawId = Array.isArray(route.params.id)
   ? route.params.id[0]
   : route.params.id;
@@ -223,6 +243,26 @@ const {
   queryFn: ({ signal }) => getShopProductDetail(productId, signal),
   enabled: validProductId,
 });
+
+const { data: favoriteIds } = useQuery({
+  queryKey: ['shop', 'favorite', 'ids'],
+  queryFn: ({ signal }) => getFavoriteIds(signal),
+  enabled: computed(() => Boolean(userStore.token) && validProductId),
+});
+
+const isFavorite = computed(() =>
+  Boolean(favoriteIds.value?.includes(productId)),
+);
+
+watch(
+  detail,
+  (value) => {
+    if (value && userStore.token) {
+      void recordBrowsingHistory(productId).catch(() => undefined);
+    }
+  },
+  { immediate: true },
+);
 
 const radioSelections = ref<Record<number, number | undefined>>({});
 const checkboxSelections = ref<Record<number, number[]>>({});
@@ -432,6 +472,32 @@ async function addSelectedToCart() {
     addingToCart.value = false;
   }
 }
+
+async function toggleFavoriteAction() {
+  if (!userStore.token) {
+    await router.push({
+      name: 'login',
+      query: { redirect: route.fullPath },
+    });
+    return;
+  }
+  if (togglingFavorite.value) return;
+  togglingFavorite.value = true;
+  try {
+    const favorited = await toggleFavorite(productId);
+    showToast({
+      message: favorited ? '已收藏商品' : '已取消收藏',
+      icon: favorited ? 'star' : 'success',
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ['shop', 'favorite'],
+    });
+  } catch (error) {
+    showToast(isApiError(error) ? error.message : '收藏操作失败');
+  } finally {
+    togglingFavorite.value = false;
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -480,6 +546,7 @@ async function addSelectedToCart() {
 }
 
 .summary {
+  min-width: 0;
   padding-top: var(--space-4);
 }
 
@@ -511,6 +578,7 @@ async function addSelectedToCart() {
   font-weight: 780;
   line-height: var(--leading-tight);
   letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
 }
 
 .summary__subtitle {
@@ -523,6 +591,34 @@ async function addSelectedToCart() {
   flex-wrap: wrap;
   gap: var(--space-2);
   padding-top: var(--space-3);
+}
+
+.summary__actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-3);
+}
+
+.favorite-toggle {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.favorite-toggle--active {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
 }
 
 .block {

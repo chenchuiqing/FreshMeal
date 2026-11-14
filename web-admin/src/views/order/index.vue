@@ -4,7 +4,8 @@ import { ElMessage } from "element-plus";
 import {
   getAdminOrderDetail,
   getAdminOrderPage,
-  updateAdminOrderStatus
+  updateAdminOrderStatus,
+  exportAdminOrders
 } from "@/api/admin-business";
 import type { AdminOrder, AdminOrderDetail } from "@/api/admin-business";
 
@@ -21,6 +22,7 @@ const actionLoading = ref(false);
 const selectedOrder = ref<AdminOrder | null>(null);
 const targetStatus = ref<number | null>(null);
 const reason = ref("");
+const exporting = ref(false);
 
 const form = reactive({
   current: 1,
@@ -52,7 +54,7 @@ const transitions: Record<number, number[]> = {
   4: [5, 9],
   5: [6],
   6: [],
-  7: [8],
+  7: [],
   8: [],
   9: []
 };
@@ -101,6 +103,31 @@ function reset() {
   form.status = undefined;
   form.dateRange = [];
   search();
+}
+
+async function exportReport() {
+  exporting.value = true;
+  try {
+    const blob = await exportAdminOrders({
+      startTime: form.dateRange[0]
+        ? `${form.dateRange[0]}T00:00:00`
+        : undefined,
+      endTime: form.dateRange[1]
+        ? `${form.dateRange[1]}T23:59:59`
+        : undefined
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "FreshMeal-订单报表.xlsx";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    ElMessage.success("订单报表已导出");
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "报表导出失败");
+  } finally {
+    exporting.value = false;
+  }
 }
 
 function changeCurrent(current: number) {
@@ -218,6 +245,9 @@ onMounted(loadPage);
           搜索
         </el-button>
         <el-button @click="reset">重置</el-button>
+        <el-button :loading="exporting" @click="exportReport">
+          导出Excel
+        </el-button>
       </el-form-item>
     </el-form>
 

@@ -35,4 +35,6 @@ public interface ProductService {
     List<ShopProductVO> listRecommendedProducts(int limit);
 
     List<String> listHealthTags();
+
+    List<ShopProductVO> listShopProductsByIds(List<Long> ids);
 }

@@ -11,6 +11,8 @@ public record OrderSettleRequest(
         Integer deliveryType,
 
         @Size(max = 100, message = "最多结算100条购物车记录")
-        List<Long> cartItemIds
+        List<Long> cartItemIds,
+
+        Long userCouponId
 ) {
 }

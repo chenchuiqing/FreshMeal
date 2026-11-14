@@ -94,3 +94,24 @@
     justify-content: center;
   }
 }
+
+@media screen and (max-width: 600px) {
+  .login-container {
+    display: flex;
+    justify-content: center;
+    padding: 0 1rem;
+  }
+
+  .login-box {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .login-form {
+    width: min(100%, 360px);
+  }
+
+  .avatar {
+    width: min(100%, 350px);
+  }
+}

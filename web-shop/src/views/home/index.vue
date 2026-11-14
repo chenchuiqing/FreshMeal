@@ -13,6 +13,43 @@
     </header>
 
     <main>
+      <section v-if="banners?.length" class="banner-section" aria-label="活动轮播">
+        <van-swipe
+          :autoplay="4000"
+          :loop="banners.length > 1"
+          indicator-color="#ffffff"
+        >
+          <van-swipe-item v-for="banner in banners" :key="banner.id">
+            <RouterLink
+              class="banner-slide"
+              :to="banner.link || '/catalog'"
+            >
+              <img :src="banner.image" :alt="banner.title" />
+              <strong>{{ banner.title }}</strong>
+            </RouterLink>
+          </van-swipe-item>
+        </van-swipe>
+      </section>
+
+      <van-notice-bar
+        v-if="latestNotice"
+        class="notice-bar"
+        left-icon="volume-o"
+        :text="latestNotice.title"
+        :scrollable="latestNotice.title.length > 18"
+        @click="openNotice"
+      />
+
+      <div v-if="homeLoading" class="state-panel">
+        <van-loading vertical>首页内容加载中…</van-loading>
+      </div>
+      <div v-else-if="homeError" class="state-panel" role="alert">
+        <p>{{ homeErrorText }}</p>
+        <van-button plain type="primary" @click="refetchHome">
+          重新加载
+        </van-button>
+      </div>
+
       <section class="hero">
         <div class="hero__copy">
           <span>新鲜备餐 · 按需配送</span>
@@ -138,13 +175,19 @@
 
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query';
+import { showDialog } from 'vant/es';
 import ProductCard from '@/components/common/ProductCard.vue';
+import {
+  getBanners,
+  getNotices,
+} from '@/api/modules/marketing';
 import {
   getHotProducts,
   getRecommendedProducts,
   getShopCategoryTree,
 } from '@/api/modules/product';
 import { useUserStore } from '@/store/modules/user';
+import { isApiError } from '@/types/api/common';
 import { formatPrice } from '@/utils/product';
 
 defineOptions({ name: 'HomePage' });
@@ -153,25 +196,115 @@ const userStore = useUserStore();
 const RECOMMEND_LIMIT = 10;
 const HOT_LIMIT = 6;
 
-const { data: categoryTree } = useQuery({
+const categoryQuery = useQuery({
   queryKey: ['shop', 'categories'],
   queryFn: ({ signal }) => getShopCategoryTree(signal),
 });
-const { data: recommended } = useQuery({
+const recommendedQuery = useQuery({
   queryKey: ['shop', 'products', 'recommended'],
   queryFn: ({ signal }) => getRecommendedProducts(RECOMMEND_LIMIT, signal),
 });
-const { data: hot } = useQuery({
+const hotQuery = useQuery({
   queryKey: ['shop', 'products', 'hot'],
   queryFn: ({ signal }) => getHotProducts(HOT_LIMIT, signal),
 });
+const { data: categoryTree } = categoryQuery;
+const { data: recommended } = recommendedQuery;
+const { data: hot } = hotQuery;
+const { data: banners } = useQuery({
+  queryKey: ['shop', 'content', 'banners'],
+  queryFn: ({ signal }) => getBanners(signal),
+});
+const { data: notices } = useQuery({
+  queryKey: ['shop', 'content', 'notices'],
+  queryFn: ({ signal }) => getNotices(signal),
+});
 
 const roots = computed(() => categoryTree.value ?? []);
+const latestNotice = computed(() => notices.value?.[0]);
+const homeLoading = computed(
+  () =>
+    categoryQuery.isLoading.value ||
+    recommendedQuery.isLoading.value ||
+    hotQuery.isLoading.value,
+);
+const homeError = computed(
+  () =>
+    categoryQuery.isError.value ||
+    recommendedQuery.isError.value ||
+    hotQuery.isError.value,
+);
+const homeErrorText = computed(() => {
+  const queryError =
+    categoryQuery.error.value ??
+    recommendedQuery.error.value ??
+    hotQuery.error.value;
+  return isApiError(queryError)
+    ? queryError.message
+    : '首页内容加载失败，请稍后重试';
+});
+
+async function refetchHome() {
+  await Promise.all([
+    categoryQuery.refetch(),
+    recommendedQuery.refetch(),
+    hotQuery.refetch(),
+  ]);
+}
+
+function openNotice() {
+  const notice = latestNotice.value;
+  if (!notice) return;
+  void showDialog({
+    title: notice.title,
+    message: notice.content || '暂无详细内容',
+    confirmButtonText: '知道了',
+  });
+}
 </script>
 
 <style scoped lang="scss">
 .home-page {
   padding-top: calc(var(--space-4) + env(safe-area-inset-top));
+}
+
+.banner-section {
+  margin-top: var(--space-4);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+.banner-slide {
+  position: relative;
+  display: block;
+  aspect-ratio: 2.4 / 1;
+  overflow: hidden;
+  color: #fff;
+  text-decoration: none;
+  background: var(--color-background-soft);
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  strong {
+    position: absolute;
+    right: var(--space-4);
+    bottom: var(--space-4);
+    left: var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-secondary);
+    background: rgb(0 0 0 / 45%);
+    border-radius: var(--radius-md);
+  }
+}
+
+.notice-bar {
+  margin-top: var(--space-3);
+  border-radius: var(--radius-md);
 }
 
 .brand-row {
@@ -241,6 +374,7 @@ const roots = computed(() => categoryTree.value ?? []);
   position: relative;
   z-index: 1;
   align-self: center;
+  min-width: 0;
 
   > span,
   .path-section span {
@@ -262,6 +396,7 @@ const roots = computed(() => categoryTree.value ?? []);
     margin: 0;
     line-height: 1.7;
     color: rgb(255 255 255 / 80%);
+    overflow-wrap: anywhere;
   }
 }
 

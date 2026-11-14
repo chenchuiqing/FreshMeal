@@ -23,6 +23,7 @@ import com.freshmeal.mapper.OrderMapper;
 import com.freshmeal.mapper.OrderStatusLogMapper;
 import com.freshmeal.mapper.PaymentMapper;
 import com.freshmeal.service.CartService;
+import com.freshmeal.service.CouponService;
 import com.freshmeal.service.DeliverySlotService;
 import com.freshmeal.service.FreightService;
 import com.freshmeal.service.InventoryService;
@@ -70,6 +71,7 @@ public class OrderServiceImpl implements OrderService {
     private final AddressMapper addressMapper;
     private final CartMapper cartMapper;
     private final CartService cartService;
+    private final CouponService couponService;
     private final DeliverySlotService deliverySlotService;
     private final FreightService freightService;
     private final InventoryService inventoryService;
@@ -86,7 +88,8 @@ public class OrderServiceImpl implements OrderService {
     public OrderSettleVO settle(Long userId, OrderSettleRequest request) {
         validateDeliveryType(request.deliveryType());
         Settlement settlement = buildSettlement(userId, request.addressId(),
-                request.deliveryType(), request.cartItemIds());
+                request.deliveryType(), request.cartItemIds(),
+                request.userCouponId());
         return new OrderSettleVO(
                 settlement.lines().stream().map(PricedCartLine::line).toList(),
                 settlement.address(),
@@ -104,7 +107,8 @@ public class OrderServiceImpl implements OrderService {
     public OrderVO create(Long userId, OrderCreateRequest request) {
         validateDeliveryType(request.deliveryType());
         Settlement settlement = buildSettlement(userId, request.addressId(),
-                request.deliveryType(), request.cartItemIds());
+                request.deliveryType(), request.cartItemIds(),
+                request.userCouponId());
         DeliverySlot slot = validateSlot(request.deliveryType(),
                 request.deliverySlotId(), request.deliverySlotDate());
 
@@ -134,8 +138,9 @@ public class OrderServiceImpl implements OrderService {
         order.setPayStatus(0);
         order.setPayType(0);
         order.setRemark(StringUtils.hasText(request.remark()) ? request.remark().trim() : null);
-        order.setUserCouponId(null);
+        order.setUserCouponId(settlement.userCouponId());
         orderMapper.insert(order);
+        couponService.markUsed(settlement.userCouponId(), order.getId());
 
         List<OrderItem> items = settlement.lines().stream()
                 .map(line -> toOrderItem(order, line))
@@ -208,7 +213,8 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(ErrorCode.ORDER_NOT_FOUND.getCode(),
                     ErrorCode.ORDER_NOT_FOUND.getMessage());
         }
-        if (order.getStatus() != OrderStatus.WAIT_PAY.getCode()) {
+        if (order.getStatus() != OrderStatus.WAIT_PAY.getCode()
+                && order.getStatus() != OrderStatus.WAIT_ACCEPT.getCode()) {
             throw new BusinessException(ErrorCode.ORDER_STATE_INVALID.getCode(),
                     ErrorCode.ORDER_STATE_INVALID.getMessage());
         }
@@ -267,7 +273,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private Settlement buildSettlement(Long userId, Long addressId, int deliveryType,
-            List<Long> cartItemIds) {
+            List<Long> cartItemIds, Long userCouponId) {
         Address address = addressMapper.selectById(addressId);
         if (address == null || !userId.equals(address.getUserId())) {
             throw new BusinessException(ErrorCode.ADDRESS_NOT_FOUND.getCode(),
@@ -288,7 +294,8 @@ public class OrderServiceImpl implements OrderService {
             freight = new FreightVO(null, "到店自提", BigDecimal.ZERO,
                     BigDecimal.ZERO, false);
         }
-        BigDecimal discount = BigDecimal.ZERO.setScale(2);
+        BigDecimal discount = couponService.calculateDiscount(
+                userId, userCouponId, goodsAmount);
         BigDecimal payAmount = goodsAmount
                 .add(freight.freightAmount())
                 .subtract(discount)
@@ -297,7 +304,7 @@ public class OrderServiceImpl implements OrderService {
                 .mapToInt(line -> line.line().subtotalCalories())
                 .sum();
         return new Settlement(lines, toAddressVo(address), freight, goodsAmount,
-                discount, payAmount, calories);
+                discount, payAmount, calories, userCouponId);
     }
 
     private OrderItem toOrderItem(Order order, PricedCartLine priced) {
@@ -479,7 +486,8 @@ public class OrderServiceImpl implements OrderService {
             BigDecimal goodsAmount,
             BigDecimal discountAmount,
             BigDecimal payAmount,
-            int totalCalories
+        int totalCalories,
+        Long userCouponId
     ) {
     }
 }

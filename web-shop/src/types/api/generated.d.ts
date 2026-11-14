@@ -383,6 +383,228 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/shop/coupon/available': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 查询可领取优惠券 */
+    get: operations['listAvailableCoupons'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/coupon/list': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 查询我的优惠券 */
+    get: operations['listUserCoupons'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/coupon/{id}/receive': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** 领取优惠券 */
+    post: operations['receiveCoupon'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/order/{orderNo}/review': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 查询订单评价 */
+    get: operations['listOrderReviews'];
+    put?: never;
+    /** 提交订单评价 */
+    post: operations['submitOrderReview'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/favorite/ids': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 查询收藏商品ID */
+    get: operations['listFavoriteIds'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/favorite/page': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 分页查询收藏商品 */
+    get: operations['listFavorites'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/favorite/{productId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** 收藏或取消收藏商品 */
+    post: operations['toggleFavorite'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/history/{productId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** 记录商品浏览历史 */
+    post: operations['recordBrowsingHistory'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/history/page': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 分页查询浏览历史 */
+    get: operations['listBrowsingHistory'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/content/banner': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 查询首页轮播图 */
+    get: operations['listBanners'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/content/notice': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 查询系统公告 */
+    get: operations['listNotices'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/refund/list': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 查询我的售后申请 */
+    get: operations['listRefunds'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/refund/{orderNo}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** 申请售后退款 */
+    post: operations['requestRefund'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -471,6 +693,8 @@ export interface components {
       /** @enum {integer} */
       deliveryType: 1 | 2;
       cartItemIds?: number[];
+      /** Format: int64 */
+      userCouponId?: number;
     };
     Freight: {
       /** Format: int64 */
@@ -501,6 +725,8 @@ export interface components {
       /** Format: date */
       deliverySlotDate?: string;
       remark?: string;
+      /** Format: int64 */
+      userCouponId?: number;
     };
     DeliverySlot: {
       /** Format: int64 */
@@ -608,6 +834,96 @@ export interface components {
       size: number;
       /** Format: int64 */
       pages: number;
+    };
+    Coupon: {
+      /** Format: int64 */
+      id: number;
+      name: string;
+      /** @enum {integer} */
+      type: 1 | 2;
+      threshold: number;
+      amount: number;
+      /** Format: date-time */
+      startTime: string;
+      /** Format: date-time */
+      endTime: string;
+      totalCount: number;
+      receivedCount: number;
+      status: number;
+    };
+    UserCoupon: {
+      /** Format: int64 */
+      id: number;
+      /** Format: int64 */
+      couponId: number;
+      name: string;
+      type: number;
+      threshold: number;
+      amount: number;
+      status: number;
+      /** Format: int64 */
+      orderId?: number;
+      /** Format: date-time */
+      receiveTime?: string;
+      /** Format: date-time */
+      useTime?: string;
+      /** Format: date-time */
+      expireTime: string;
+    };
+    ReviewSubmitRequest: {
+      /** Format: int64 */
+      productId: number;
+      rating: number;
+      content?: string;
+      images?: string[];
+    };
+    Review: {
+      /** Format: int64 */
+      id: number;
+      /** Format: int64 */
+      userId: number;
+      /** Format: int64 */
+      productId: number;
+      productName: string;
+      rating: number;
+      content?: string;
+      images: string[];
+      reply?: string;
+      /** Format: date-time */
+      createTime: string;
+    };
+    Banner: {
+      /** Format: int64 */
+      id: number;
+      title: string;
+      image: string;
+      link?: string;
+    };
+    Notice: {
+      /** Format: int64 */
+      id: number;
+      title: string;
+      content?: string;
+      type: number;
+      /** Format: date-time */
+      createTime: string;
+    };
+    RefundRequest: {
+      reason: string;
+    };
+    Refund: {
+      /** Format: int64 */
+      id: number;
+      orderNo: string;
+      amount: number;
+      reason: string;
+      status: number;
+      previousStatus: number;
+      adminReply?: string;
+      /** Format: date-time */
+      createTime: string;
+      /** Format: date-time */
+      updateTime: string;
     };
     ResultAddress: {
       code: number;
@@ -849,6 +1165,76 @@ export interface components {
       /** Format: int64 */
       timestamp: number;
     };
+    ResultCouponList: {
+      code: number;
+      message: string;
+      data: components['schemas']['Coupon'][];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultUserCouponList: {
+      code: number;
+      message: string;
+      data: components['schemas']['UserCoupon'][];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultUserCoupon: {
+      code: number;
+      message: string;
+      data: components['schemas']['UserCoupon'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultReviewList: {
+      code: number;
+      message: string;
+      data: components['schemas']['Review'][];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultReview: {
+      code: number;
+      message: string;
+      data: components['schemas']['Review'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultLongList: {
+      code: number;
+      message: string;
+      data: number[];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultBoolean: {
+      code: number;
+      message: string;
+      data: boolean;
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultBannerList: {
+      code: number;
+      message: string;
+      data: components['schemas']['Banner'][];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultNoticeList: {
+      code: number;
+      message: string;
+      data: components['schemas']['Notice'][];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultRefundList: {
+      code: number;
+      message: string;
+      data: components['schemas']['Refund'][];
+      /** Format: int64 */
+      timestamp: number;
+    };
     ResultNull: {
       code: number;
       message: string;
@@ -862,6 +1248,10 @@ export interface components {
     ShopAddressId: number;
     ShopCartId: number;
     ShopOrderNo: string;
+    ShopCouponId: number;
+    ShopProductId: number;
+    ShopPageCurrent: number;
+    ShopPageSize: number;
   };
   requestBodies: never;
   headers: never;
@@ -1722,6 +2112,438 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ResultPayment'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  listAvailableCoupons: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultCouponList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  listUserCoupons: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultUserCouponList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  receiveCoupon: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: components['parameters']['ShopCouponId'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 领取成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultUserCoupon'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  listOrderReviews: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orderNo: components['parameters']['ShopOrderNo'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultReviewList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  submitOrderReview: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orderNo: components['parameters']['ShopOrderNo'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReviewSubmitRequest'];
+      };
+    };
+    responses: {
+      /** @description 提交成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultReview'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  listFavoriteIds: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultLongList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  listFavorites: {
+    parameters: {
+      query?: {
+        current?: components['parameters']['ShopPageCurrent'];
+        size?: components['parameters']['ShopPageSize'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultShopProductPage'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  toggleFavorite: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        productId: components['parameters']['ShopProductId'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 操作成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultBoolean'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  recordBrowsingHistory: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        productId: components['parameters']['ShopProductId'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 记录成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  listBrowsingHistory: {
+    parameters: {
+      query?: {
+        current?: components['parameters']['ShopPageCurrent'];
+        size?: components['parameters']['ShopPageSize'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultShopProductPage'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  listBanners: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultBannerList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  listNotices: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNoticeList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  listRefunds: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultRefundList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  requestRefund: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orderNo: components['parameters']['ShopOrderNo'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RefundRequest'];
+      };
+    };
+    responses: {
+      /** @description 申请成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
         };
       };
       /** @description 统一错误响应 */

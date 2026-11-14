@@ -50,6 +50,50 @@
       </div>
     </section>
 
+    <section class="checkout-section surface-card">
+      <div class="section-title">
+        <h2>优惠券</h2>
+        <RouterLink class="text-button" to="/member/coupons">
+          管理优惠券
+        </RouterLink>
+      </div>
+      <div v-if="couponsLoading" class="state-panel">
+        <van-loading vertical>优惠券加载中…</van-loading>
+      </div>
+      <div v-else-if="couponsFailed" class="state-panel" role="alert">
+        <p>{{ couponsErrorText }}</p>
+        <van-button plain type="primary" @click="refetchCoupons">
+          重新加载
+        </van-button>
+      </div>
+      <van-radio-group
+        v-else
+        v-model="selectedUserCouponId"
+        class="coupon-options"
+      >
+        <van-radio :name="null" class="coupon-option">
+          <span>
+            <strong>不使用优惠券</strong>
+            <small>按原价结算</small>
+          </span>
+        </van-radio>
+        <van-radio
+          v-for="coupon in usableCoupons"
+          :key="coupon.id"
+          :name="coupon.id"
+          class="coupon-option"
+        >
+          <span>
+            <strong>{{ coupon.name }}</strong>
+            <small>
+              满 {{ formatPrice(coupon.threshold) }} 减
+              {{ coupon.type === 1 ? formatPrice(coupon.amount) : `${Math.round(Number(coupon.amount) * 10)}折` }}
+            </small>
+          </span>
+        </van-radio>
+      </van-radio-group>
+    </section>
+
     <section v-if="deliveryType === 1" class="checkout-section surface-card">
       <div class="section-title">
         <h2>预约时段</h2>
@@ -212,6 +256,8 @@ import {
   settleCart,
 } from '@/api/modules/trade';
 import { isApiError } from '@/types/api/common';
+import { listUserCoupons } from '@/api/modules/marketing';
+import type { UserCoupon } from '@/api/modules/marketing';
 import { formatPrice } from '@/utils/product';
 
 defineOptions({ name: 'CheckoutPage' });
@@ -224,6 +270,24 @@ const addressPopup = ref(false);
 const remark = ref('');
 const submitting = ref(false);
 const selectedSlotKey = ref<string | null>(null);
+const selectedUserCouponId = ref<number | null>(null);
+
+const {
+  data: userCoupons,
+  isLoading: couponsLoading,
+  isError: couponsFailed,
+  error: couponsQueryError,
+  refetch: refetchCoupons,
+} = useQuery({
+  queryKey: ['shop', 'coupons', 'mine'],
+  queryFn: ({ signal }) => listUserCoupons(signal),
+});
+
+const couponsErrorText = computed(() =>
+  isApiError(couponsQueryError.value)
+    ? couponsQueryError.value.message
+    : '优惠券加载失败',
+);
 
 const {
   data: addresses,
@@ -329,12 +393,21 @@ const checkedCartIds = computed(() =>
     .map((item) => item.id),
 );
 
+const usableCoupons = computed(() =>
+  (userCoupons.value ?? []).filter((coupon: UserCoupon) => {
+    if (coupon.status !== 0) return false;
+    const expire = new Date(coupon.expireTime).getTime();
+    return Number.isNaN(expire) || expire > Date.now();
+  }),
+);
+
 const settleParams = computed(() =>
   currentAddress.value
     ? {
         addressId: currentAddress.value.id,
         deliveryType: deliveryType.value,
         cartItemIds: checkedCartIds.value,
+        userCouponId: selectedUserCouponId.value ?? undefined,
       }
     : undefined,
 );
@@ -352,6 +425,7 @@ const {
     selectedAddressId,
     deliveryType,
     checkedCartIds,
+    selectedUserCouponId,
   ],
   queryFn: ({ signal }) => {
     const params = settleParams.value;
@@ -414,6 +488,7 @@ async function submitOrder() {
       deliverySlotId: selectedSlot.value?.id,
       deliverySlotDate: selectedSlot.value?.date,
       remark: remark.value.trim() || undefined,
+      userCouponId: selectedUserCouponId.value ?? undefined,
     });
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['shop', 'cart'] }),
@@ -538,6 +613,41 @@ function formatDate(value: string) {
 
   small {
     line-height: var(--leading-body);
+    color: var(--color-text-secondary);
+  }
+}
+
+.coupon-options {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.coupon-option {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: var(--space-3);
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  :deep(.van-radio__label) {
+    display: grid;
+    flex: 1;
+    gap: var(--space-1);
+    margin-left: var(--space-3);
+  }
+
+  span {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  strong {
+    font-weight: 700;
+  }
+
+  small {
     color: var(--color-text-secondary);
   }
 }

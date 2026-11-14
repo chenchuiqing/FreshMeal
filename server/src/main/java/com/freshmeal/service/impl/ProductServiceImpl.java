@@ -346,6 +346,19 @@ public class ProductServiceImpl implements ProductService {
         return List.copyOf(tags);
     }
 
+    @Override
+    public List<ShopProductVO> listShopProductsByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        List<Product> products = productMapper.selectBatchIds(ids);
+        Map<Long, String> names = categoryNameMap(products);
+        return products.stream()
+                .filter(product -> product.getStatus() != null && product.getStatus() == 1)
+                .map(product -> toShopVo(product, names.get(product.getCategoryId())))
+                .toList();
+    }
+
     private List<ShopProductVO> listVisibleProducts(int limit, LambdaQueryWrapper<Product> baseQuery) {
         Set<Long> enabledIds = enabledCategoryIds();
         if (enabledIds.isEmpty()) {

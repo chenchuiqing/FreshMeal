@@ -52,6 +52,36 @@ export const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'member/coupons',
+        name: 'coupons',
+        component: () => import('@/views/member/coupons.vue'),
+        meta: {
+          title: '我的优惠券',
+          keepAlive: false,
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'member/favorites',
+        name: 'favorites',
+        component: () => import('@/views/member/favorites.vue'),
+        meta: {
+          title: '我的收藏',
+          keepAlive: false,
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'member/history',
+        name: 'history',
+        component: () => import('@/views/member/history.vue'),
+        meta: {
+          title: '浏览历史',
+          keepAlive: false,
+          requiresAuth: true,
+        },
+      },
+      {
         path: 'checkout',
         name: 'checkout',
         component: () => import('@/views/checkout/index.vue'),
