@@ -1,6 +1,7 @@
 package com.freshmeal.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -50,6 +51,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -107,8 +109,12 @@ class ShopTradeControllerTest {
     @Autowired
     private DeliveryManMapper deliveryManMapper;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private final List<Long> createdCartIds = new ArrayList<>();
     private final List<String> createdOrderNumbers = new ArrayList<>();
+    private final List<String> createdUsernames = new ArrayList<>();
     private DeliveryMan originalRider;
 
     @AfterEach
@@ -156,10 +162,45 @@ class ShopTradeControllerTest {
         createdOrderNumbers.clear();
         createdCartIds.forEach(cartMapper::deleteById);
         createdCartIds.clear();
+        createdUsernames.forEach(username -> jdbcTemplate.update(
+                "DELETE FROM t_user WHERE username = ?", username));
+        createdUsernames.clear();
         if (originalRider != null) {
             deliveryManMapper.updateById(originalRider);
             originalRider = null;
         }
+    }
+
+    @Test
+    void usersCannotReadOrdersOwnedByAnotherUser() throws Exception {
+        String ownerToken = login();
+        long cartId = addItem(ownerToken, 1, List.of());
+        long addressId = readFirstAddressId(ownerToken);
+        String ownerOrderNo = createOrder(ownerToken, addressId,
+                "[" + cartId + "]");
+
+        String intruderUsername = "it-"
+                + java.util.UUID.randomUUID().toString().substring(0, 8);
+        MvcResult registerResult = mockMvc.perform(post("/api/shop/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"%s","password":"123456"}
+                                """.formatted(intruderUsername)))
+                .andExpect(status().isOk())
+                .andReturn();
+        createdUsernames.add(intruderUsername);
+        String intruderToken = "Bearer " + objectMapper.readTree(
+                        registerResult.getResponse().getContentAsString())
+                .path("data").path("accessToken").asText();
+
+        mockMvc.perform(get("/api/shop/order/" + ownerOrderNo)
+                        .header("Authorization", intruderToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(40405));
+
+        mockMvc.perform(post("/api/shop/auth/logout")
+                        .header("Authorization", intruderToken))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -518,12 +559,18 @@ class ShopTradeControllerTest {
                         .content("""
                                 {"addressId":%d,"deliveryType":1,"cartItemIds":%s,
                                  "deliverySlotId":%d,"deliverySlotDate":"%s",
-                                 "remark":"阶段3自动化验证"}
+                                 "remark":"阶段7自动化验证",
+                                 "goodsAmount":0.01,"freightAmount":0,
+                                 "discountAmount":0,"payAmount":0.01}
                                 """.formatted(addressId, cartIds,
                                 slot.id(), slot.date())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value(0))
                 .andExpect(jsonPath("$.data.payStatus").value(0))
+                .andExpect(jsonPath("$.data.goodsAmount")
+                        .value(greaterThan(0.01)))
+                .andExpect(jsonPath("$.data.payAmount")
+                        .value(greaterThan(0.01)))
                 .andReturn();
         String orderNo = objectMapper.readTree(result.getResponse().getContentAsString())
                 .path("data").path("orderNo").asText();

@@ -18,10 +18,12 @@
 |---|---|---|
 | JDK | 17 | — |
 | Maven | 3.9+ | — |
+| MySQL Client | 8 | — |
 | MySQL | 8 | `127.0.0.1:3306` |
 | Redis | 7 | `127.0.0.1:6379` |
 | Node.js | 22.12+（管理端 22.22.1+） | — |
 | pnpm | 9.12+（管理端 11+） | — |
+| 7-Zip | 任意当前版本 | — |
 
 ## 启动步骤
 
@@ -120,6 +122,28 @@ pnpm test
 pnpm build
 ```
 
+## 测试、全新环境与发布
+
+执行完整测试、类型检查和三端构建：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-release.ps1 -Action test
+```
+
+在全新数据库上执行迁移、后端测试、三端启动和种子账号冒烟验证：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-release.ps1 -Action fresh
+```
+
+生成并检查不含依赖、构建物、IDE 文件和本地密钥的源码包：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-release.ps1 -Action package
+```
+
+发布包输出到 `release/freshmeal-0.1.0-src.zip`。测试记录、JMeter 结果、安全验证和发布说明见 `docs/06-测试验收与发布说明.md`。
+
 ## 文档
 
 - `docs/01-需求分析.md`
@@ -127,3 +151,5 @@ pnpm build
 - `docs/03-系统总体设计.md`
 - `docs/04-论文大纲与写作指引.md`
 - `docs/05-开发计划与进度.md`
+- `docs/06-测试验收与发布说明.md`
+- `docs/openapi.json`

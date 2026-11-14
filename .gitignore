@@ -16,3 +16,9 @@ Thumbs.db
 # Local environment
 .env
 *.local
+
+# Generated verification artifacts
+release/
+test-results/
+*.jtl
+jmeter.log

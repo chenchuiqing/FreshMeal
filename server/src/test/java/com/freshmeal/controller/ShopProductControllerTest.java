@@ -91,6 +91,26 @@ class ShopProductControllerTest {
     }
 
     @Test
+    void sqlInjectionPayloadsAreTreatedAsLiteralSearchText() throws Exception {
+        mockMvc.perform(get("/api/shop/product/page")
+                        .param("keyword", "' OR '1'='1' --"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.total").value(0));
+
+        mockMvc.perform(get("/api/shop/product/page")
+                        .param("keyword", "101; DROP TABLE t_product; --"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.total").value(0));
+
+        mockMvc.perform(get("/api/shop/product/page")
+                        .param("sort", "sales; DELETE FROM t_product"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
     void pageSortsBySalesDescending() throws Exception {
         MvcResult result = mockMvc.perform(get("/api/shop/product/page")
                         .param("sort", "sales")
