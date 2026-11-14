@@ -15,4 +15,8 @@ public record OrderOperator(
     public static OrderOperator user(Long userId, String remark) {
         return new OrderOperator(1, userId, "用户", remark, null);
     }
+
+    public static OrderOperator rider(Long riderId, String remark) {
+        return new OrderOperator(3, riderId, "配送员", remark, null);
+    }
 }

@@ -5,6 +5,7 @@ import com.freshmeal.entity.Order;
 import com.freshmeal.entity.OrderItem;
 import com.freshmeal.entity.OrderStatusLog;
 import com.freshmeal.enums.ErrorCode;
+import com.freshmeal.enums.DeliveryStatus;
 import com.freshmeal.enums.OrderStatus;
 import com.freshmeal.mapper.OrderItemMapper;
 import com.freshmeal.mapper.OrderMapper;
@@ -14,6 +15,7 @@ import com.freshmeal.mapper.ProductMapper;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,7 @@ public class OrderStatusManager {
     private final ProductMapper productMapper;
     private final PaymentMapper paymentMapper;
     private final InventoryService inventoryService;
+    private final ObjectProvider<DeliveryOrderService> deliveryOrderServiceProvider;
 
     @Transactional(rollbackFor = Exception.class)
     public void transfer(Order order, OrderStatus target, OrderOperator operator) {
@@ -47,11 +50,32 @@ public class OrderStatusManager {
     private void applySideEffect(Order order, OrderStatus target, OrderOperator operator) {
         switch (target) {
             case WAIT_ACCEPT -> markPaid(order, operator);
-            case CANCELLED -> markCancelledAndRestore(order, operator);
-            case FINISHED -> markFinished(order);
+            case CANCELLED -> {
+                markCancelledAndRestore(order, operator);
+                cancelDeliveryOrder(order);
+            }
+            case FINISHED -> {
+                markFinished(order);
+                syncDeliveryStatus(order, DeliveryStatus.DELIVERED);
+            }
+            case WAIT_DELIVER -> createDeliveryOrder(order);
+            case DELIVERING -> syncDeliveryStatus(order, DeliveryStatus.DELIVERING);
             default -> {
             }
         }
+    }
+
+    private void createDeliveryOrder(Order order) {
+        deliveryOrderServiceProvider.ifAvailable(service -> service.createForOrder(order));
+    }
+
+    private void syncDeliveryStatus(Order order, DeliveryStatus status) {
+        deliveryOrderServiceProvider.ifAvailable(
+                service -> service.syncForOrder(order, status));
+    }
+
+    private void cancelDeliveryOrder(Order order) {
+        deliveryOrderServiceProvider.ifAvailable(service -> service.cancelForOrder(order));
     }
 
     private void markPaid(Order order, OrderOperator operator) {

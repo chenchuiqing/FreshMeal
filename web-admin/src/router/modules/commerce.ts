@@ -31,6 +31,17 @@ export default {
         keepAlive: true,
         roles: ["admin"]
       }
+    },
+    {
+      path: "/commerce/delivery/index",
+      name: "CommerceDelivery",
+      component: () => import("@/views/delivery/index.vue"),
+      meta: {
+        title: $t("menus.pureDelivery"),
+        icon: "ri/truck-line",
+        keepAlive: true,
+        roles: ["admin"]
+      }
     }
   ]
 } satisfies RouteConfigsTable;

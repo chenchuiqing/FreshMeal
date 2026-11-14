@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Data;
 
@@ -27,6 +28,22 @@ public class DeliveryMan {
     private Integer workStatus;
 
     private Integer onlineStatus;
+
+    private Long serviceAreaId;
+
+    private BigDecimal longitude;
+
+    private BigDecimal latitude;
+
+    private Integer maxOrderNum;
+
+    private Integer todayOrderCount;
+
+    private Integer totalOrderCount;
+
+    private BigDecimal totalIncome;
+
+    private BigDecimal rating;
 
     private Integer status;
 

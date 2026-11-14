@@ -7,6 +7,8 @@ export type CartItemAddRequest = components['schemas']['CartItemAddRequest'];
 export type CartItemUpdateRequest = components['schemas']['CartItemUpdateRequest'];
 export type CartLine = components['schemas']['CartLine'];
 export type CartSummary = components['schemas']['CartSummary'];
+export type DeliverySlot = components['schemas']['DeliverySlot'];
+export type DeliveryTrace = components['schemas']['DeliveryTrace'];
 export type Order = components['schemas']['Order'];
 export type OrderCreateRequest = components['schemas']['OrderCreateRequest'];
 export type OrderPage = components['schemas']['OrderPage'];
@@ -131,6 +133,23 @@ export function getOrderDetail(
   signal?: AbortSignal,
 ): Promise<Order> {
   return apiClient.get<Order>(`/shop/order/${orderNo}`, { signal });
+}
+
+export function getAvailableDeliverySlots(
+  signal?: AbortSignal,
+): Promise<DeliverySlot[]> {
+  return apiClient.get<DeliverySlot[]>('/shop/delivery-slot/available', {
+    signal,
+  });
+}
+
+export function getOrderDeliveryTrace(
+  orderNo: string,
+  signal?: AbortSignal,
+): Promise<DeliveryTrace[]> {
+  return apiClient.get<DeliveryTrace[]>(`/shop/order/${orderNo}/trace`, {
+    signal,
+  });
 }
 
 export function cancelOrder(

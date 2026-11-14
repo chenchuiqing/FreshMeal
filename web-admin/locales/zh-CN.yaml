@@ -72,6 +72,7 @@ menus:
   pureCommerce: 商品管理
   pureCategory: 分类管理
   pureProduct: 商品列表
+  pureDelivery: 配送调度
   pureLogin: 登录
   pureEmpty: 无Layout页
   pureTable: 表格

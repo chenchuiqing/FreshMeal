@@ -50,6 +50,42 @@
       </div>
     </section>
 
+    <section v-if="deliveryType === 1" class="checkout-section surface-card">
+      <div class="section-title">
+        <h2>预约时段</h2>
+        <span>{{ slots?.length ?? 0 }} 个可选</span>
+      </div>
+      <div v-if="slotsLoading" class="state-panel">
+        <van-loading vertical>正在查询可预约时段…</van-loading>
+      </div>
+      <div v-else-if="slotsFailed" class="state-panel" role="alert">
+        <p>{{ slotsErrorText }}</p>
+        <van-button plain type="primary" @click="refetchSlots">
+          重新查询
+        </van-button>
+      </div>
+      <div v-else-if="!slots?.length" class="inline-state">
+        <p>当前没有可预约的配送时段，请稍后再试。</p>
+      </div>
+      <div v-else class="slot-list">
+        <button
+          v-for="slot in slots"
+          :key="slotKey(slot)"
+          type="button"
+          class="slot-option"
+          :class="{ 'slot-option--selected': selectedSlotKey === slotKey(slot) }"
+          @click="selectedSlotKey = slotKey(slot)"
+        >
+          <strong>{{ slot.name }}</strong>
+          <span>{{ formatDate(slot.date) }}</span>
+          <small v-if="slot.remainingCapacity != null">
+            余 {{ slot.remainingCapacity }} 单
+          </small>
+          <small v-else>仍有名额</small>
+        </button>
+      </div>
+    </section>
+
     <section class="checkout-section surface-card">
       <div class="section-title">
         <h2>餐品清单</h2>
@@ -129,7 +165,11 @@
         type="primary"
         size="large"
         :loading="submitting"
-        :disabled="!settle || submitting"
+        :disabled="
+          !settle ||
+          submitting ||
+          (deliveryType === 1 && !selectedSlot)
+        "
         loading-text="提交中…"
         @click="submitOrder"
       >
@@ -164,7 +204,13 @@
 
 <script setup lang="ts">
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
-import { createOrder, getCart, listAddresses, settleCart } from '@/api/modules/trade';
+import {
+  createOrder,
+  getAvailableDeliverySlots,
+  getCart,
+  listAddresses,
+  settleCart,
+} from '@/api/modules/trade';
 import { isApiError } from '@/types/api/common';
 import { formatPrice } from '@/utils/product';
 
@@ -177,6 +223,7 @@ const selectedAddressId = ref<number | null>(null);
 const addressPopup = ref(false);
 const remark = ref('');
 const submitting = ref(false);
+const selectedSlotKey = ref<string | null>(null);
 
 const {
   data: addresses,
@@ -215,6 +262,56 @@ watch(
 const currentAddress = computed(() =>
   addresses.value?.find((address) => address.id === selectedAddressId.value),
 );
+
+const {
+  data: slots,
+  isLoading: slotsLoading,
+  isError: slotsFailed,
+  error: slotsQueryError,
+  refetch: refetchSlots,
+} = useQuery({
+  queryKey: ['shop', 'delivery-slots'],
+  queryFn: ({ signal }) => getAvailableDeliverySlots(signal),
+  enabled: computed(() => deliveryType.value === 1),
+});
+
+const slotsErrorText = computed(() =>
+  isApiError(slotsQueryError.value)
+    ? slotsQueryError.value.message
+    : '配送时段加载失败',
+);
+
+const selectedSlot = computed(() =>
+  slots.value?.find(
+    (slot) => selectedSlotKey.value === `${slot.id}-${slot.date}`,
+  ),
+);
+
+watch(
+  slots,
+  (items) => {
+    if (deliveryType.value !== 1 || !items?.length) return;
+    const exists = items.some(
+      (slot) => selectedSlotKey.value === `${slot.id}-${slot.date}`,
+    );
+    const [firstSlot] = items;
+    if (!exists && firstSlot) {
+      selectedSlotKey.value = `${firstSlot.id}-${firstSlot.date}`;
+    }
+  },
+  { immediate: true },
+);
+
+watch(deliveryType, (value) => {
+  if (value === 2) {
+    selectedSlotKey.value = null;
+    return;
+  }
+  const [firstSlot] = slots.value ?? [];
+  if (firstSlot && selectedSlotKey.value === null) {
+    selectedSlotKey.value = `${firstSlot.id}-${firstSlot.date}`;
+  }
+});
 
 const {
   data: cart,
@@ -297,13 +394,25 @@ function selectAddress(value: unknown) {
 
 async function submitOrder() {
   const address = currentAddress.value;
-  if (!address || !settle.value || submitting.value) return;
+  if (
+    !address ||
+    !settle.value ||
+    submitting.value ||
+    (deliveryType.value === 1 && !selectedSlot.value)
+  ) {
+    if (deliveryType.value === 1 && !selectedSlot.value) {
+      showToast('请选择可用的配送日期与时段');
+    }
+    return;
+  }
   submitting.value = true;
   try {
     const order = await createOrder({
       addressId: address.id,
       deliveryType: deliveryType.value,
       cartItemIds: checkedCartIds.value,
+      deliverySlotId: selectedSlot.value?.id,
+      deliverySlotDate: selectedSlot.value?.date,
       remark: remark.value.trim() || undefined,
     });
     await Promise.all([
@@ -324,6 +433,20 @@ async function submitOrder() {
   } finally {
     submitting.value = false;
   }
+}
+
+function slotKey(slot: { id: number; date: string }) {
+  return `${slot.id}-${slot.date}`;
+}
+
+function formatDate(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+  }).format(date);
 }
 </script>
 
@@ -582,6 +705,45 @@ async function submitOrder() {
 
   small {
     color: var(--color-text-secondary);
+  }
+}
+
+.slot-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.slot-option {
+  display: grid;
+  gap: var(--space-1);
+  min-height: 5.5rem;
+  padding: var(--space-3);
+  text-align: left;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  strong {
+    font-size: var(--text-body);
+  }
+
+  span,
+  small {
+    font-size: var(--text-caption);
+    color: var(--color-text-secondary);
+  }
+}
+
+.slot-option--selected {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+
+  strong,
+  span,
+  small {
+    color: var(--color-primary);
   }
 }
 </style>

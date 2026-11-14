@@ -12,6 +12,10 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.freshmeal.entity.Cart;
+import com.freshmeal.entity.DeliveryMan;
+import com.freshmeal.entity.DeliveryManLog;
+import com.freshmeal.entity.DeliveryOrder;
+import com.freshmeal.entity.DeliveryTrace;
 import com.freshmeal.entity.InventoryLog;
 import com.freshmeal.entity.Order;
 import com.freshmeal.entity.OrderItem;
@@ -19,6 +23,10 @@ import com.freshmeal.entity.OrderStatusLog;
 import com.freshmeal.entity.Payment;
 import com.freshmeal.entity.Product;
 import com.freshmeal.mapper.CartMapper;
+import com.freshmeal.mapper.DeliveryManLogMapper;
+import com.freshmeal.mapper.DeliveryManMapper;
+import com.freshmeal.mapper.DeliveryOrderMapper;
+import com.freshmeal.mapper.DeliveryTraceMapper;
 import com.freshmeal.mapper.InventoryLogMapper;
 import com.freshmeal.mapper.OrderItemMapper;
 import com.freshmeal.mapper.OrderMapper;
@@ -27,8 +35,10 @@ import com.freshmeal.mapper.PaymentMapper;
 import com.freshmeal.mapper.ProductMapper;
 import com.freshmeal.mapper.ProductBatchMapper;
 import com.freshmeal.service.InventoryService;
+import com.freshmeal.service.DeliverySlotService;
 import com.freshmeal.service.OrderService;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -82,8 +92,24 @@ class ShopTradeControllerTest {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private DeliverySlotService deliverySlotService;
+
+    @Autowired
+    private DeliveryOrderMapper deliveryOrderMapper;
+
+    @Autowired
+    private DeliveryTraceMapper deliveryTraceMapper;
+
+    @Autowired
+    private DeliveryManLogMapper deliveryManLogMapper;
+
+    @Autowired
+    private DeliveryManMapper deliveryManMapper;
+
     private final List<Long> createdCartIds = new ArrayList<>();
     private final List<String> createdOrderNumbers = new ArrayList<>();
+    private DeliveryMan originalRider;
 
     @AfterEach
     void cleanUpCreatedTradeData() {
@@ -113,6 +139,16 @@ class ShopTradeControllerTest {
                     .eq(Payment::getOrderId, order.getId()));
             orderStatusLogMapper.delete(Wrappers.<OrderStatusLog>lambdaQuery()
                     .eq(OrderStatusLog::getOrderId, order.getId()));
+            DeliveryOrder delivery = deliveryOrderMapper.selectOne(
+                    Wrappers.<DeliveryOrder>lambdaQuery()
+                            .eq(DeliveryOrder::getOrderId, order.getId()));
+            if (delivery != null) {
+                deliveryTraceMapper.delete(Wrappers.<DeliveryTrace>lambdaQuery()
+                        .eq(DeliveryTrace::getDeliveryOrderId, delivery.getId()));
+                deliveryManLogMapper.delete(Wrappers.<DeliveryManLog>lambdaQuery()
+                        .eq(DeliveryManLog::getDeliveryOrderId, delivery.getId()));
+                deliveryOrderMapper.deleteById(delivery.getId());
+            }
             orderItemMapper.delete(Wrappers.<OrderItem>lambdaQuery()
                     .eq(OrderItem::getOrderId, order.getId()));
             orderMapper.deleteById(order.getId());
@@ -120,6 +156,172 @@ class ShopTradeControllerTest {
         createdOrderNumbers.clear();
         createdCartIds.forEach(cartMapper::deleteById);
         createdCartIds.clear();
+        if (originalRider != null) {
+            deliveryManMapper.updateById(originalRider);
+            originalRider = null;
+        }
+    }
+
+    @Test
+    void reservationActivatesDispatchesAndCompletesDeliveryWithTrace()
+            throws Exception {
+        String userToken = login();
+        DeliveryMan rider = deliveryManMapper.selectOne(
+                Wrappers.<DeliveryMan>lambdaQuery()
+                        .eq(DeliveryMan::getUsername, "rider01"));
+        assertThat(rider).isNotNull();
+        originalRider = copyRider(rider);
+        rider.setOnlineStatus(1);
+        rider.setWorkStatus(0);
+        deliveryManMapper.updateById(rider);
+
+        long cartId = addItem(userToken, 1, List.of());
+        long addressId = readFirstAddressId(userToken);
+        String orderNo = createOrder(userToken, addressId, "[" + cartId + "]");
+        String payNo = initiatePayment(userToken, orderNo);
+        notifyPayment(userToken, payNo, 1);
+
+        Order order = requireOrder(orderNo);
+        order.setPayTime(LocalDateTime.now().minusMinutes(2));
+        orderMapper.updateById(order);
+        orderService.advanceReadyOrders();
+        assertThat(requireOrder(orderNo).getStatus()).isEqualTo(3);
+
+        order = requireOrder(orderNo);
+        order.setDeliverySlotDate(LocalDate.now().minusDays(1));
+        orderMapper.updateById(order);
+        orderService.activateDueSlotOrders();
+        assertThat(requireOrder(orderNo).getStatus()).isEqualTo(4);
+
+        DeliveryOrder delivery = deliveryOrderMapper.selectOne(
+                Wrappers.<DeliveryOrder>lambdaQuery()
+                        .eq(DeliveryOrder::getOrderId, requireOrder(orderNo).getId()));
+        assertThat(delivery).isNotNull();
+        assertThat(delivery.getStatus()).isEqualTo(1);
+        assertThat(delivery.getAssignType()).isEqualTo(1);
+        List<DeliveryManLog> dispatchLogs = deliveryManLogMapper.selectList(
+                Wrappers.<DeliveryManLog>lambdaQuery()
+                        .eq(DeliveryManLog::getDeliveryOrderId, delivery.getId()));
+        assertThat(dispatchLogs).isNotEmpty();
+        assertThat(dispatchLogs).anySatisfy(log -> {
+            assertThat(log.getIsFinal()).isEqualTo(1);
+            assertThat(log.getTotalScore()).isBetween(
+                    java.math.BigDecimal.ZERO, java.math.BigDecimal.ONE);
+            assertThat(log.getDistanceScore()).isBetween(
+                    java.math.BigDecimal.ZERO, java.math.BigDecimal.ONE);
+            assertThat(log.getLoadScore()).isBetween(
+                    java.math.BigDecimal.ZERO, java.math.BigDecimal.ONE);
+            assertThat(log.getRatingScore()).isBetween(
+                    java.math.BigDecimal.ZERO, java.math.BigDecimal.ONE);
+        });
+
+        String riderToken = loginRider();
+        mockMvc.perform(put("/api/rider/task/" + delivery.getDeliveryNo() + "/pickup")
+                        .header("Authorization", riderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value(3));
+        assertThat(requireOrder(orderNo).getStatus()).isEqualTo(5);
+
+        mockMvc.perform(put("/api/rider/task/" + delivery.getDeliveryNo() + "/deliver")
+                        .header("Authorization", riderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value(4));
+        assertThat(requireOrder(orderNo).getStatus()).isEqualTo(6);
+
+        mockMvc.perform(get("/api/shop/order/" + orderNo + "/trace")
+                        .header("Authorization", userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(
+                        deliveryTraceMapper.selectCount(
+                                Wrappers.<DeliveryTrace>lambdaQuery()
+                                        .eq(DeliveryTrace::getDeliveryOrderId,
+                                                delivery.getId())).intValue()));
+    }
+
+    @Test
+    void adminCanManuallyAssignUnclaimedDelivery() throws Exception {
+        DeliveryScenario scenario = createUnassignedDelivery();
+        String riderToken = loginRider();
+        mockMvc.perform(put("/api/rider/profile/work-status")
+                        .header("Authorization", riderToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"onlineStatus\":1,\"workStatus\":0}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.onlineStatus").value(1))
+                .andExpect(jsonPath("$.data.workStatus").value(0));
+        String adminToken = loginAdmin();
+
+        mockMvc.perform(put("/api/admin/delivery/order/"
+                        + scenario.delivery().getId() + "/assign")
+                        .header("Authorization", adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"riderId\":1}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value(1))
+                .andExpect(jsonPath("$.data.assignType").value(3))
+                .andExpect(jsonPath("$.data.deliveryManId").value(1));
+
+        assertThat(deliveryManLogMapper.selectCount(
+                Wrappers.<DeliveryManLog>lambdaQuery()
+                        .eq(DeliveryManLog::getDeliveryOrderId,
+                                scenario.delivery().getId()))).isPositive();
+    }
+
+    @Test
+    void optimisticClaimAllowsOneWinnerAndRiderCanGrabFromTodo()
+            throws Exception {
+        DeliveryScenario scenario = createUnassignedDelivery();
+        String riderToken = loginRider();
+        DeliveryMan rider = deliveryManMapper.selectById(1L);
+        rider.setOnlineStatus(1);
+        rider.setWorkStatus(0);
+        deliveryManMapper.updateById(rider);
+
+        assertThat(deliveryOrderMapper.claimForRider(
+                scenario.delivery().getId(), 1L, "Rider 01",
+                "13800000003", 1)).isEqualTo(1);
+        assertThat(deliveryOrderMapper.claimForRider(
+                scenario.delivery().getId(), 2L, "Rider 02",
+                "13800000003", 2)).isZero();
+        assertThat(deliveryOrderMapper.resetClaim(scenario.delivery().getId()))
+                .isEqualTo(1);
+
+        mockMvc.perform(get("/api/rider/task/todo")
+                        .header("Authorization", riderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(
+                        "$.data[?(@.deliveryNo == '%s')].deliveryNo"
+                                .formatted(scenario.delivery().getDeliveryNo()))
+                        .isNotEmpty());
+
+        mockMvc.perform(post("/api/rider/task/"
+                        + scenario.delivery().getDeliveryNo() + "/grab")
+                        .header("Authorization", riderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value(1))
+                .andExpect(jsonPath("$.data.assignType").value(2));
+
+        mockMvc.perform(get("/api/rider/task/my")
+                        .header("Authorization", riderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(
+                        "$.data[?(@.deliveryNo == '%s')].deliveryNo"
+                                .formatted(scenario.delivery().getDeliveryNo()))
+                        .isNotEmpty());
+
+        mockMvc.perform(post("/api/rider/task/"
+                        + scenario.delivery().getDeliveryNo() + "/grab")
+                        .header("Authorization", riderToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value(40900));
+
+        mockMvc.perform(put("/api/rider/profile/work-status")
+                        .header("Authorization", riderToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"onlineStatus\":0,\"workStatus\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.onlineStatus").value(0))
+                .andExpect(jsonPath("$.data.workStatus").value(2));
     }
 
     @Test
@@ -204,6 +406,82 @@ class ShopTradeControllerTest {
                 .path("data").path("accessToken").asText();
     }
 
+    private String loginRider() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/rider/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"rider01","password":"123456"}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        return "Bearer " + objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("data").path("accessToken").asText();
+    }
+
+    private String loginAdmin() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/admin/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"admin","password":"123456"}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        return "Bearer " + objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("data").path("accessToken").asText();
+    }
+
+    private DeliveryScenario createUnassignedDelivery() throws Exception {
+        String userToken = login();
+        DeliveryMan rider = deliveryManMapper.selectOne(
+                Wrappers.<DeliveryMan>lambdaQuery()
+                        .eq(DeliveryMan::getUsername, "rider01"));
+        assertThat(rider).isNotNull();
+        originalRider = copyRider(rider);
+        rider.setOnlineStatus(0);
+        rider.setWorkStatus(2);
+        deliveryManMapper.updateById(rider);
+
+        long cartId = addItem(userToken, 1, List.of());
+        long addressId = readFirstAddressId(userToken);
+        String orderNo = createOrder(userToken, addressId, "[" + cartId + "]");
+        String payNo = initiatePayment(userToken, orderNo);
+        notifyPayment(userToken, payNo, 1);
+
+        Order order = requireOrder(orderNo);
+        order.setPayTime(LocalDateTime.now().minusMinutes(2));
+        orderMapper.updateById(order);
+        orderService.advanceReadyOrders();
+        order = requireOrder(orderNo);
+        order.setDeliverySlotDate(LocalDate.now().minusDays(1));
+        orderMapper.updateById(order);
+        orderService.activateDueSlotOrders();
+
+        DeliveryOrder delivery = deliveryOrderMapper.selectOne(
+                Wrappers.<DeliveryOrder>lambdaQuery()
+                        .eq(DeliveryOrder::getOrderId, requireOrder(orderNo).getId()));
+        assertThat(delivery).isNotNull();
+        assertThat(delivery.getStatus()).isZero();
+        return new DeliveryScenario(orderNo, delivery);
+    }
+
+    private DeliveryMan copyRider(DeliveryMan rider) {
+        DeliveryMan copy = new DeliveryMan();
+        copy.setId(rider.getId());
+        copy.setOnlineStatus(rider.getOnlineStatus());
+        copy.setWorkStatus(rider.getWorkStatus());
+        copy.setTodayOrderCount(rider.getTodayOrderCount());
+        copy.setTotalOrderCount(rider.getTotalOrderCount());
+        copy.setTotalIncome(rider.getTotalIncome());
+        return copy;
+    }
+
+    private Order requireOrder(String orderNo) {
+        Order order = orderMapper.selectOne(Wrappers.<Order>lambdaQuery()
+                .eq(Order::getOrderNo, orderNo));
+        assertThat(order).isNotNull();
+        return order;
+    }
+
     private long addItem(String token, int quantity, List<Long> optionIds) throws Exception {
         String options = objectMapper.writeValueAsString(optionIds);
         MvcResult result = mockMvc.perform(post("/api/shop/cart")
@@ -233,13 +511,16 @@ class ShopTradeControllerTest {
     }
 
     private String createOrder(String token, long addressId, String cartIds) throws Exception {
+        var slot = deliverySlotService.listAvailable().get(0);
         MvcResult result = mockMvc.perform(post("/api/shop/order")
                         .header("Authorization", token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"addressId":%d,"deliveryType":1,"cartItemIds":%s,
+                                 "deliverySlotId":%d,"deliverySlotDate":"%s",
                                  "remark":"阶段3自动化验证"}
-                                """.formatted(addressId, cartIds)))
+                                """.formatted(addressId, cartIds,
+                                slot.id(), slot.date())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value(0))
                 .andExpect(jsonPath("$.data.payStatus").value(0))
@@ -284,5 +565,8 @@ class ShopTradeControllerTest {
         com.freshmeal.entity.ProductBatch batch = productBatchMapper.selectById(batchId);
         assertThat(batch).isNotNull();
         return batch.getStock();
+    }
+
+    private record DeliveryScenario(String orderNo, DeliveryOrder delivery) {
     }
 }

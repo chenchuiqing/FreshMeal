@@ -1,4 +1,4 @@
-import { Button, Cell, CellGroup, Field, Form, Icon } from 'vant';
+import { Button, Cell, CellGroup, Field, Form, Icon, Loading } from 'vant';
 import 'vant/lib/index.css';
 import { createApp } from 'vue';
 import App from './App.vue';
@@ -34,6 +34,7 @@ function bootstrap() {
   app.use(CellGroup);
   app.use(Cell);
   app.use(Icon);
+  app.use(Loading);
   app.use(router);
   app.mount('#app');
 }

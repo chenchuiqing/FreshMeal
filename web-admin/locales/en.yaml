@@ -72,6 +72,7 @@ menus:
   pureCommerce: Product Manage
   pureCategory: Category Manage
   pureProduct: Product List
+  pureDelivery: Delivery Dispatch
   pureLogin: Login
   pureEmpty: Empty Page
   pureTable: Table

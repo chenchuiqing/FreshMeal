@@ -20,4 +20,8 @@ public interface OrderService {
     void cancel(Long userId, String orderNo, String reason);
 
     void cancelExpiredUnpaidOrders();
+
+    void advanceReadyOrders();
+
+    void activateDueSlotOrders();
 }

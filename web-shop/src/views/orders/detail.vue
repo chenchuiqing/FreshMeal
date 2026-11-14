@@ -84,6 +84,31 @@
         </ol>
       </section>
 
+      <section
+        v-if="deliveryTrace && deliveryTrace.length"
+        class="detail-section surface-card"
+      >
+        <div class="section-title">
+          <h2>配送进度</h2>
+          <span>{{ deliveryTrace.length }} 个节点</span>
+        </div>
+        <ol class="timeline">
+          <li
+            v-for="(node, index) in [...deliveryTrace].reverse()"
+            :key="`${node.status}-${node.time}`"
+            :class="{ current: index === 0 }"
+          >
+            <span class="timeline__dot" />
+            <div>
+              <strong>{{ node.statusText }}</strong>
+              <p v-if="node.remark">{{ node.remark }}</p>
+              <small v-if="node.address">{{ node.address }}</small>
+              <small>{{ formatDateTime(node.time) }}</small>
+            </div>
+          </li>
+        </ol>
+      </section>
+
       <section v-if="order.payment" class="detail-section surface-card">
         <div class="section-title">
           <h2>支付流水</h2>
@@ -137,6 +162,7 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import {
   cancelOrder,
   getOrderDetail,
+  getOrderDeliveryTrace,
   initiatePayment,
 } from '@/api/modules/trade';
 import { isApiError } from '@/types/api/common';
@@ -165,6 +191,26 @@ const {
   queryKey: ['shop', 'order', orderNo],
   queryFn: ({ signal }) => getOrderDetail(orderNo.value, signal),
   enabled: validOrderNo,
+  refetchInterval: query =>
+    query.state.data &&
+    query.state.data.status >= 3 &&
+    query.state.data.status <= 6
+      ? 10_000
+      : false,
+});
+
+const { data: deliveryTrace } = useQuery({
+  queryKey: ['shop', 'order-trace', orderNo],
+  queryFn: ({ signal }) => getOrderDeliveryTrace(orderNo.value, signal),
+  enabled: computed(
+    () =>
+      validOrderNo.value &&
+      !!order.value &&
+      order.value.status >= 3 &&
+      order.value.status <= 6,
+  ),
+  staleTime: 5000,
+  refetchInterval: 10_000,
 });
 
 const errorText = computed(() =>

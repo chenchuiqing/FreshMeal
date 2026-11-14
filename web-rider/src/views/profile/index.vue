@@ -30,7 +30,7 @@
         <van-cell title="登录账号" :value="riderStore.info?.username || '-'" />
       </van-cell-group>
       <p class="panel__note">
-        接单、取货上报、送达上报与业绩统计将在配送业务上线后开放。
+        可在任务大厅接单，并完成取货、送达与业绩统计。
       </p>
     </section>
 

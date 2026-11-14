@@ -8,9 +8,11 @@ import com.freshmeal.dto.user.OrderQuery;
 import com.freshmeal.dto.user.PaymentInitiateRequest;
 import com.freshmeal.security.ShopLoginContext;
 import com.freshmeal.security.StpInterfaceImpl;
+import com.freshmeal.service.DeliveryOrderService;
 import com.freshmeal.service.OrderService;
 import com.freshmeal.service.PaymentService;
 import com.freshmeal.vo.user.OrderVO;
+import com.freshmeal.vo.user.DeliveryTraceVO;
 import com.freshmeal.vo.user.PaymentVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ public class ShopOrderController {
 
     private final OrderService orderService;
     private final PaymentService paymentService;
+    private final DeliveryOrderService deliveryOrderService;
 
     @PostMapping
     public Result<OrderVO> create(@Valid @RequestBody OrderCreateRequest request) {
@@ -44,6 +47,12 @@ public class ShopOrderController {
     @GetMapping("/{orderNo}")
     public Result<OrderVO> detail(@PathVariable String orderNo) {
         return Result.ok(orderService.detail(ShopLoginContext.currentUserId(), orderNo));
+    }
+
+    @GetMapping("/{orderNo}/trace")
+    public Result<java.util.List<DeliveryTraceVO>> trace(@PathVariable String orderNo) {
+        return Result.ok(deliveryOrderService.traceForUser(
+                ShopLoginContext.currentUserId(), orderNo));
     }
 
     @DeleteMapping("/{orderNo}")

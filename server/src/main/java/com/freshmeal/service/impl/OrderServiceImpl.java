@@ -9,6 +9,7 @@ import com.freshmeal.dto.user.OrderCreateRequest;
 import com.freshmeal.dto.user.OrderQuery;
 import com.freshmeal.dto.user.OrderSettleRequest;
 import com.freshmeal.entity.Address;
+import com.freshmeal.entity.DeliverySlot;
 import com.freshmeal.entity.Order;
 import com.freshmeal.entity.OrderItem;
 import com.freshmeal.entity.OrderStatusLog;
@@ -22,6 +23,7 @@ import com.freshmeal.mapper.OrderMapper;
 import com.freshmeal.mapper.OrderStatusLogMapper;
 import com.freshmeal.mapper.PaymentMapper;
 import com.freshmeal.service.CartService;
+import com.freshmeal.service.DeliverySlotService;
 import com.freshmeal.service.FreightService;
 import com.freshmeal.service.InventoryService;
 import com.freshmeal.service.OrderOperator;
@@ -68,6 +70,7 @@ public class OrderServiceImpl implements OrderService {
     private final AddressMapper addressMapper;
     private final CartMapper cartMapper;
     private final CartService cartService;
+    private final DeliverySlotService deliverySlotService;
     private final FreightService freightService;
     private final InventoryService inventoryService;
     private final OrderStatusManager orderStatusManager;
@@ -75,6 +78,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Value("${freshmeal.order.pay-expire-minutes:15}")
     private int payExpireMinutes;
+
+    @Value("${freshmeal.order.prepare-delay-seconds:10}")
+    private long prepareDelaySeconds;
 
     @Override
     public OrderSettleVO settle(Long userId, OrderSettleRequest request) {
@@ -99,8 +105,8 @@ public class OrderServiceImpl implements OrderService {
         validateDeliveryType(request.deliveryType());
         Settlement settlement = buildSettlement(userId, request.addressId(),
                 request.deliveryType(), request.cartItemIds());
-        validateSlot(request.deliveryType(), request.deliverySlotId(),
-                request.deliverySlotDate());
+        DeliverySlot slot = validateSlot(request.deliveryType(),
+                request.deliverySlotId(), request.deliverySlotDate());
 
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
@@ -116,10 +122,12 @@ public class OrderServiceImpl implements OrderService {
         order.setLongitude(settlement.address().longitude());
         order.setLatitude(settlement.address().latitude());
         order.setDeliveryType(request.deliveryType());
-        order.setExpectTime(null);
+        order.setExpectTime(slot == null
+                ? null
+                : request.deliverySlotDate().atTime(slot.getStartTime()));
         order.setDeliverySlotId(request.deliverySlotId());
         order.setDeliverySlotDate(request.deliverySlotDate());
-        order.setDeliverySlotName(null);
+        order.setDeliverySlotName(slot == null ? null : slot.getName());
         order.setDeliveryAreaId(settlement.freight().areaId());
         order.setDeliveryDistance(settlement.freight().distance());
         order.setStatus(OrderStatus.WAIT_PAY.getCode());
@@ -223,6 +231,39 @@ public class OrderServiceImpl implements OrderService {
             orderStatusManager.transfer(order, OrderStatus.CANCELLED,
                     OrderOperator.system("支付超时自动取消"));
         }
+    }
+
+    @Override
+    @Scheduled(fixedDelay = 15_000, initialDelay = 15_000)
+    @Transactional(rollbackFor = Exception.class)
+    public void advanceReadyOrders() {
+        LocalDateTime cutoff = LocalDateTime.now().minusSeconds(prepareDelaySeconds);
+        orderMapper.selectPaidOrdersReadyForPreparation(cutoff).forEach(candidate -> {
+            Order order = orderMapper.selectByOrderNoForUpdate(candidate.getOrderNo());
+            if (order == null || order.getStatus() != OrderStatus.WAIT_ACCEPT.getCode()) {
+                return;
+            }
+            orderStatusManager.transfer(order, OrderStatus.PREPARING,
+                    OrderOperator.system("商家备餐完成"));
+            if (order.getDeliveryType() == DELIVERY_TYPE_EXTERNAL) {
+                orderStatusManager.transfer(order, OrderStatus.WAIT_SLOT,
+                        OrderOperator.system("进入预约配送时段等待"));
+            }
+        });
+    }
+
+    @Override
+    @Scheduled(fixedDelay = 10_000, initialDelay = 20_000)
+    @Transactional(rollbackFor = Exception.class)
+    public void activateDueSlotOrders() {
+        orderMapper.selectDueSlotOrders().forEach(candidate -> {
+            Order order = orderMapper.selectByOrderNoForUpdate(candidate.getOrderNo());
+            if (order == null || order.getStatus() != OrderStatus.WAIT_SLOT.getCode()) {
+                return;
+            }
+            orderStatusManager.transfer(order, OrderStatus.WAIT_DELIVER,
+                    OrderOperator.system("预约时段开始，自动激活"));
+        });
     }
 
     private Settlement buildSettlement(Long userId, Long addressId, int deliveryType,
@@ -398,13 +439,22 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    private void validateSlot(int deliveryType, Long slotId, LocalDate slotDate) {
-        if (deliveryType == DELIVERY_TYPE_EXTERNAL && (slotId == null || slotDate == null)) {
-            return;
+    private DeliverySlot validateSlot(int deliveryType, Long slotId, LocalDate slotDate) {
+        if (deliveryType == DELIVERY_TYPE_PICKUP) {
+            if (slotId != null || slotDate != null) {
+                throw new BusinessException(ErrorCode.BAD_REQUEST.getCode(),
+                        "到店自提不能选择配送时段");
+            }
+            return null;
+        }
+        if (slotId == null || slotDate == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST.getCode(),
+                    "请选择配送日期与时段");
         }
         if (slotId == null && slotDate != null || slotId != null && slotDate == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST.getCode(), "预约配送时段不完整");
         }
+        return deliverySlotService.validateAndSnapshot(slotId, slotDate);
     }
 
     private String generateOrderNo() {

@@ -280,6 +280,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/shop/delivery-slot/available': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 查询可用且未满的配送日期与时段 */
+    get: operations['getAvailableDeliverySlots'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/shop/order/page': {
     parameters: {
       query?: never;
@@ -306,6 +323,23 @@ export interface paths {
     };
     /** 订单详情、商品明细与状态时间轴 */
     get: operations['getOrderDetail'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/order/{orderNo}/trace': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 查询订单配送进度轨迹 */
+    get: operations['getOrderDeliveryTrace'];
     put?: never;
     post?: never;
     /** 取消待支付订单 */
@@ -468,6 +502,28 @@ export interface components {
       deliverySlotDate?: string;
       remark?: string;
     };
+    DeliverySlot: {
+      /** Format: int64 */
+      id: number;
+      /** Format: date */
+      date: string;
+      name: string;
+      /** Format: time */
+      startTime: string;
+      /** Format: time */
+      endTime: string;
+      remainingCapacity?: number;
+    };
+    DeliveryTrace: {
+      status: number;
+      statusText: string;
+      address?: string;
+      remark?: string;
+      longitude?: number;
+      latitude?: number;
+      /** Format: date-time */
+      time: string;
+    };
     PaymentInitiateRequest: {
       /** @enum {integer} */
       payType: 1 | 2;
@@ -592,6 +648,20 @@ export interface components {
       code: number;
       message: string;
       data: components['schemas']['Order'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultDeliverySlotList: {
+      code: number;
+      message: string;
+      data: components['schemas']['DeliverySlot'][];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultDeliveryTraceList: {
+      code: number;
+      message: string;
+      data: components['schemas']['DeliveryTrace'][];
       /** Format: int64 */
       timestamp: number;
     };
@@ -1441,6 +1511,35 @@ export interface operations {
       };
     };
   };
+  getAvailableDeliverySlots: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultDeliverySlotList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
   getOrders: {
     parameters: {
       query?: {
@@ -1493,6 +1592,37 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ResultOrder'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  getOrderDeliveryTrace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orderNo: components['parameters']['ShopOrderNo'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultDeliveryTraceList'];
         };
       };
       /** @description 统一错误响应 */
