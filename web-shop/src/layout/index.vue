@@ -19,6 +19,22 @@
       网络已断开，恢复连接后可继续加载内容
     </p>
 
+    <nav v-if="isRootPage" class="tab-bar" aria-label="主导航">
+      <RouterLink to="/home" class="tab-bar__brand">
+        <SvgIcon name="logo" />
+        <strong>FreshMeal</strong>
+      </RouterLink>
+      <RouterLink
+        v-for="item in tabs"
+        :key="item.to"
+        :to="item.to"
+        class="tab-bar__item"
+      >
+        <SvgIcon :name="item.icon" />
+        <span>{{ item.label }}</span>
+      </RouterLink>
+    </nav>
+
     <main
       class="page-scroll no-scrollbar"
       :class="{ 'page-scroll--with-nav': isRootPage }"
@@ -38,22 +54,6 @@
         />
       </RouterView>
     </main>
-
-    <nav v-if="isRootPage" class="tab-bar" aria-label="主导航">
-      <RouterLink to="/home" class="tab-bar__brand">
-        <SvgIcon name="logo" />
-        <strong>FreshMeal</strong>
-      </RouterLink>
-      <RouterLink
-        v-for="item in tabs"
-        :key="item.to"
-        :to="item.to"
-        class="tab-bar__item"
-      >
-        <SvgIcon :name="item.icon" />
-        <span>{{ item.label }}</span>
-      </RouterLink>
-    </nav>
   </div>
 </template>
 
@@ -182,17 +182,21 @@ const tabs = computed<Array<{ to: string; label: string; icon: SvgIconName }>>(
 
 @media (min-width: 768px) {
   .tab-bar {
-    inset: 0.75rem 1.5rem auto;
+    position: static;
     grid-template-columns: auto repeat(4, auto);
     gap: var(--space-1);
     width: min(calc(100% - 3rem), var(--content-max-width));
     min-height: 3.25rem;
     padding: 0.25rem;
-    margin: 0 auto;
+    margin: 0.75rem auto 0;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-float);
+  }
+
+  .page-scroll--with-nav {
+    padding-bottom: 0;
   }
 
   .tab-bar__brand {
