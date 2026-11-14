@@ -44,6 +44,13 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
+freshmeal:
+  store:
+    longitude: ${STORE_LONGITUDE:121.473701}
+    latitude: ${STORE_LATITUDE:31.230416}
+  order:
+    pay-expire-minutes: ${ORDER_PAY_EXPIRE_MINUTES:15}
+
 sa-token:
   token-name: Authorization
   token-prefix: Bearer

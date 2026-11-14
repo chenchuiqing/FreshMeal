@@ -20,6 +20,11 @@ describe('shop routes', () => {
         'catalog',
         'cart',
         'member',
+        'checkout',
+        'address',
+        'orders',
+        'orders/:orderNo',
+        'pay/:orderNo',
         'product/:id',
         '/login',
         '/register',
@@ -46,5 +51,22 @@ describe('shop routes', () => {
     expect(
       allRoutes.find((route) => route.path === '/:pathMatch(.*)*')?.redirect,
     ).toEqual({ name: 'home' });
+  });
+
+  it('requires authentication for cart and trade routes', () => {
+    expect(allRoutes.find((route) => route.name === 'cart')?.meta).toMatchObject({
+      requiresAuth: true,
+    });
+    for (const name of [
+      'checkout',
+      'address',
+      'orders',
+      'orderDetail',
+      'pay',
+    ]) {
+      expect(allRoutes.find((route) => route.name === name)?.meta).toMatchObject({
+        requiresAuth: true,
+      });
+    }
   });
 });

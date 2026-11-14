@@ -257,8 +257,1025 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResultNull'
+  /shop/address:
+    get:
+      operationId: listAddresses
+      summary: 查询当前用户的收货地址
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultAddressList'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+    post:
+      operationId: createAddress
+      summary: 新增收货地址
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressSaveRequest'
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultAddress'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/address/{id}:
+    put:
+      operationId: updateAddress
+      summary: 修改收货地址
+      parameters:
+        - $ref: '#/components/parameters/ShopAddressId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressSaveRequest'
+      responses:
+        '200':
+          description: 修改成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultAddress'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+    delete:
+      operationId: deleteAddress
+      summary: 删除收货地址
+      parameters:
+        - $ref: '#/components/parameters/ShopAddressId'
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/address/{id}/default:
+    put:
+      operationId: setDefaultAddress
+      summary: 设置默认收货地址
+      parameters:
+        - $ref: '#/components/parameters/ShopAddressId'
+      responses:
+        '200':
+          description: 设置成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultAddress'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/cart:
+    get:
+      operationId: getCart
+      summary: 查询购物车与勾选合计
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCartSummary'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+    post:
+      operationId: addCartItem
+      summary: 加入购物车
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemAddRequest'
+      responses:
+        '200':
+          description: 加入成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCartLine'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/cart/{id}:
+    put:
+      operationId: updateCartItem
+      summary: 修改购物车数量、规格、选项或勾选状态
+      parameters:
+        - $ref: '#/components/parameters/ShopCartId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemUpdateRequest'
+      responses:
+        '200':
+          description: 修改成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultCartLine'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+    delete:
+      operationId: deleteCartItem
+      summary: 删除购物车记录
+      parameters:
+        - $ref: '#/components/parameters/ShopCartId'
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/cart/settle:
+    post:
+      operationId: settleCart
+      summary: 结算预览
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderSettleRequest'
+      responses:
+        '200':
+          description: 结算成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrderSettle'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/order:
+    post:
+      operationId: createOrder
+      summary: 服务端重新计价并提交订单
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+      responses:
+        '200':
+          description: 下单成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrder'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/order/page:
+    get:
+      operationId: getOrders
+      summary: 订单分页列表与状态筛选
+      parameters:
+        - name: current
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: status
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 9
+        - name: orderNo
+          in: query
+          schema:
+            type: string
+            maxLength: 32
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrderPage'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/order/{orderNo}:
+    get:
+      operationId: getOrderDetail
+      summary: 订单详情、商品明细与状态时间轴
+      parameters:
+        - $ref: '#/components/parameters/ShopOrderNo'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrder'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+    delete:
+      operationId: cancelOrder
+      summary: 取消待支付订单
+      parameters:
+        - $ref: '#/components/parameters/ShopOrderNo'
+      responses:
+        '200':
+          description: 取消成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /shop/order/{orderNo}/pay:
+    post:
+      operationId: initiatePayment
+      summary: 发起模拟支付并创建支付流水
+      parameters:
+        - $ref: '#/components/parameters/ShopOrderNo'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentInitiateRequest'
+      responses:
+        '200':
+          description: 发起成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultPayment'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
+  /pay/mock/notify:
+    post:
+      operationId: notifyMockPayment
+      summary: 模拟支付回调，重复通知幂等
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MockPayNotifyRequest'
+      responses:
+        '200':
+          description: 回调处理成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultPayment'
+        default:
+          description: 统一错误响应
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultNull'
 components:
+  parameters:
+    ShopAddressId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    ShopCartId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    ShopOrderNo:
+      name: orderNo
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 32
   schemas:
+    AddressSaveRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - receiver
+        - phone
+        - province
+        - city
+        - district
+        - detail
+        - longitude
+        - latitude
+        - isDefault
+      properties:
+        receiver:
+          type: string
+          maxLength: 50
+        phone:
+          type: string
+          pattern: '^1\d{10}$'
+        province:
+          type: string
+          maxLength: 30
+        city:
+          type: string
+          maxLength: 30
+        district:
+          type: string
+          maxLength: 30
+        detail:
+          type: string
+          maxLength: 200
+        longitude:
+          type: number
+        latitude:
+          type: number
+        tag:
+          type: string
+          maxLength: 20
+        isDefault:
+          type: boolean
+    Address:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - receiver
+        - phone
+        - province
+        - city
+        - district
+        - detail
+        - fullAddress
+        - isDefault
+      properties:
+        id:
+          type: integer
+          format: int64
+        receiver:
+          type: string
+        phone:
+          type: string
+        province:
+          type: string
+        city:
+          type: string
+        district:
+          type: string
+        detail:
+          type: string
+        fullAddress:
+          type: string
+        longitude:
+          type: number
+        latitude:
+          type: number
+        tag:
+          type: string
+        isDefault:
+          type: boolean
+    CartItemAddRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: integer
+          format: int64
+        specId:
+          type: integer
+          format: int64
+        optionItemIds:
+          type: array
+          maxItems: 20
+          items:
+            type: integer
+            format: int64
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 99
+    CartItemUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        specId:
+          type: integer
+          format: int64
+        optionItemIds:
+          type: array
+          maxItems: 20
+          items:
+            type: integer
+            format: int64
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 99
+        checked:
+          type: boolean
+    CartOption:
+      type: object
+      additionalProperties: false
+      required:
+        - groupId
+        - itemId
+        - name
+        - priceDelta
+        - calories
+      properties:
+        groupId:
+          type: integer
+          format: int64
+        itemId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        priceDelta:
+          type: number
+        calories:
+          type: integer
+    CartLine:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - productId
+        - productName
+        - cover
+        - unit
+        - options
+        - optionsDesc
+        - unitPrice
+        - subtotal
+        - calories
+        - subtotalCalories
+        - quantity
+        - checked
+        - available
+      properties:
+        id:
+          type: integer
+          format: int64
+        productId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        cover:
+          type: string
+        unit:
+          type: string
+        specId:
+          type: integer
+          format: int64
+        specName:
+          type: string
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartOption'
+        optionsDesc:
+          type: string
+        unitPrice:
+          type: number
+        subtotal:
+          type: number
+        calories:
+          type: integer
+        subtotalCalories:
+          type: integer
+        quantity:
+          type: integer
+        checked:
+          type: boolean
+        available:
+          type: boolean
+    CartSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - goodsAmount
+        - totalCalories
+        - checkedCount
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartLine'
+        goodsAmount:
+          type: number
+        totalCalories:
+          type: integer
+        checkedCount:
+          type: integer
+    OrderSettleRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - deliveryType
+      properties:
+        addressId:
+          type: integer
+          format: int64
+        deliveryType:
+          type: integer
+          enum: [1, 2]
+        cartItemIds:
+          type: array
+          maxItems: 100
+          items:
+            type: integer
+            format: int64
+    Freight:
+      type: object
+      additionalProperties: false
+      required:
+        - distance
+        - freightAmount
+        - freeShipping
+      properties:
+        areaId:
+          type: integer
+          format: int64
+        areaName:
+          type: string
+        distance:
+          type: number
+        freightAmount:
+          type: number
+        freeShipping:
+          type: boolean
+    OrderSettle:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - address
+        - freight
+        - goodsAmount
+        - freightAmount
+        - discountAmount
+        - payAmount
+        - totalCalories
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartLine'
+        address:
+          $ref: '#/components/schemas/Address'
+        freight:
+          $ref: '#/components/schemas/Freight'
+        goodsAmount:
+          type: number
+        freightAmount:
+          type: number
+        discountAmount:
+          type: number
+        payAmount:
+          type: number
+        totalCalories:
+          type: integer
+    OrderCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - addressId
+        - deliveryType
+        - cartItemIds
+      properties:
+        addressId:
+          type: integer
+          format: int64
+        deliveryType:
+          type: integer
+          enum: [1, 2]
+        cartItemIds:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: integer
+            format: int64
+        deliverySlotId:
+          type: integer
+          format: int64
+        deliverySlotDate:
+          type: string
+          format: date
+        remark:
+          type: string
+          maxLength: 200
+    PaymentInitiateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - payType
+      properties:
+        payType:
+          type: integer
+          enum: [1, 2]
+    MockPayNotifyRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - payNo
+        - payType
+        - success
+      properties:
+        payNo:
+          type: string
+          maxLength: 32
+        payType:
+          type: integer
+          enum: [1, 2]
+        success:
+          type: boolean
+        thirdPartyNo:
+          type: string
+          maxLength: 64
+    Payment:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - payNo
+        - orderNo
+        - payType
+        - status
+        - amount
+        - cashierPath
+      properties:
+        id:
+          type: integer
+          format: int64
+        payNo:
+          type: string
+        orderNo:
+          type: string
+        payType:
+          type: integer
+        status:
+          type: integer
+        amount:
+          type: number
+        expireTime:
+          type: string
+          format: date-time
+        payTime:
+          type: string
+          format: date-time
+        cashierPath:
+          type: string
+    OrderItem:
+      type: object
+      additionalProperties: false
+      required:
+        - productId
+        - productName
+        - productCover
+        - optionsDesc
+        - price
+        - quantity
+        - subtotal
+        - calories
+        - subtotalCalories
+      properties:
+        productId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        productCover:
+          type: string
+        specName:
+          type: string
+        optionsDesc:
+          type: string
+        price:
+          type: number
+        quantity:
+          type: integer
+        subtotal:
+          type: number
+        calories:
+          type: integer
+        subtotalCalories:
+          type: integer
+    OrderTimeline:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - statusText
+        - operatorName
+        - time
+      properties:
+        status:
+          type: integer
+        statusText:
+          type: string
+        operatorName:
+          type: string
+        remark:
+          type: string
+        time:
+          type: string
+          format: date-time
+    Order:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - orderNo
+        - status
+        - statusText
+        - payStatus
+        - payType
+        - deliveryType
+        - goodsAmount
+        - freightAmount
+        - discountAmount
+        - payAmount
+        - receiver
+        - receiverPhone
+        - receiverAddress
+        - createTime
+        - items
+        - timeline
+      properties:
+        id:
+          type: integer
+          format: int64
+        orderNo:
+          type: string
+        status:
+          type: integer
+        statusText:
+          type: string
+        payStatus:
+          type: integer
+        payType:
+          type: integer
+        deliveryType:
+          type: integer
+        goodsAmount:
+          type: number
+        freightAmount:
+          type: number
+        discountAmount:
+          type: number
+        payAmount:
+          type: number
+        receiver:
+          type: string
+        receiverPhone:
+          type: string
+        receiverAddress:
+          type: string
+        remark:
+          type: string
+        cancelReason:
+          type: string
+        createTime:
+          type: string
+          format: date-time
+        payTime:
+          type: string
+          format: date-time
+        cancelTime:
+          type: string
+          format: date-time
+        payment:
+          $ref: '#/components/schemas/Payment'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderTimeline'
+    OrderPage:
+      type: object
+      additionalProperties: false
+      required:
+        - records
+        - total
+        - current
+        - size
+        - pages
+      properties:
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        total:
+          type: integer
+          format: int64
+        current:
+          type: integer
+          format: int64
+        size:
+          type: integer
+          format: int64
+        pages:
+          type: integer
+          format: int64
+    ResultAddress:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Address'
+        timestamp:
+          type: integer
+          format: int64
+    ResultAddressList:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+        timestamp:
+          type: integer
+          format: int64
+    ResultCartLine:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/CartLine'
+        timestamp:
+          type: integer
+          format: int64
+    ResultCartSummary:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/CartSummary'
+        timestamp:
+          type: integer
+          format: int64
+    ResultOrderSettle:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/OrderSettle'
+        timestamp:
+          type: integer
+          format: int64
+    ResultOrder:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Order'
+        timestamp:
+          type: integer
+          format: int64
+    ResultOrderPage:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/OrderPage'
+        timestamp:
+          type: integer
+          format: int64
+    ResultPayment:
+      type: object
+      required: [code, message, data, timestamp]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Payment'
+        timestamp:
+          type: integer
+          format: int64
     ShopAuthRequest:
       type: object
       additionalProperties: false

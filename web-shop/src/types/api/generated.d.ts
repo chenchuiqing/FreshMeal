@@ -157,10 +157,458 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/shop/address': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 查询当前用户的收货地址 */
+    get: operations['listAddresses'];
+    put?: never;
+    /** 新增收货地址 */
+    post: operations['createAddress'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/address/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** 修改收货地址 */
+    put: operations['updateAddress'];
+    post?: never;
+    /** 删除收货地址 */
+    delete: operations['deleteAddress'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/address/{id}/default': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** 设置默认收货地址 */
+    put: operations['setDefaultAddress'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/cart': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 查询购物车与勾选合计 */
+    get: operations['getCart'];
+    put?: never;
+    /** 加入购物车 */
+    post: operations['addCartItem'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/cart/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** 修改购物车数量、规格、选项或勾选状态 */
+    put: operations['updateCartItem'];
+    post?: never;
+    /** 删除购物车记录 */
+    delete: operations['deleteCartItem'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/cart/settle': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** 结算预览 */
+    post: operations['settleCart'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/order': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** 服务端重新计价并提交订单 */
+    post: operations['createOrder'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/order/page': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 订单分页列表与状态筛选 */
+    get: operations['getOrders'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/order/{orderNo}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** 订单详情、商品明细与状态时间轴 */
+    get: operations['getOrderDetail'];
+    put?: never;
+    post?: never;
+    /** 取消待支付订单 */
+    delete: operations['cancelOrder'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/shop/order/{orderNo}/pay': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** 发起模拟支付并创建支付流水 */
+    post: operations['initiatePayment'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/pay/mock/notify': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** 模拟支付回调，重复通知幂等 */
+    post: operations['notifyMockPayment'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    AddressSaveRequest: {
+      receiver: string;
+      phone: string;
+      province: string;
+      city: string;
+      district: string;
+      detail: string;
+      longitude: number;
+      latitude: number;
+      tag?: string;
+      isDefault: boolean;
+    };
+    Address: {
+      /** Format: int64 */
+      id: number;
+      receiver: string;
+      phone: string;
+      province: string;
+      city: string;
+      district: string;
+      detail: string;
+      fullAddress: string;
+      longitude?: number;
+      latitude?: number;
+      tag?: string;
+      isDefault: boolean;
+    };
+    CartItemAddRequest: {
+      /** Format: int64 */
+      productId: number;
+      /** Format: int64 */
+      specId?: number;
+      optionItemIds?: number[];
+      quantity: number;
+    };
+    CartItemUpdateRequest: {
+      /** Format: int64 */
+      specId?: number;
+      optionItemIds?: number[];
+      quantity?: number;
+      checked?: boolean;
+    };
+    CartOption: {
+      /** Format: int64 */
+      groupId: number;
+      /** Format: int64 */
+      itemId: number;
+      name: string;
+      priceDelta: number;
+      calories: number;
+    };
+    CartLine: {
+      /** Format: int64 */
+      id: number;
+      /** Format: int64 */
+      productId: number;
+      productName: string;
+      cover: string;
+      unit: string;
+      /** Format: int64 */
+      specId?: number;
+      specName?: string;
+      options: components['schemas']['CartOption'][];
+      optionsDesc: string;
+      unitPrice: number;
+      subtotal: number;
+      calories: number;
+      subtotalCalories: number;
+      quantity: number;
+      checked: boolean;
+      available: boolean;
+    };
+    CartSummary: {
+      items: components['schemas']['CartLine'][];
+      goodsAmount: number;
+      totalCalories: number;
+      checkedCount: number;
+    };
+    OrderSettleRequest: {
+      /** Format: int64 */
+      addressId?: number;
+      /** @enum {integer} */
+      deliveryType: 1 | 2;
+      cartItemIds?: number[];
+    };
+    Freight: {
+      /** Format: int64 */
+      areaId?: number;
+      areaName?: string;
+      distance: number;
+      freightAmount: number;
+      freeShipping: boolean;
+    };
+    OrderSettle: {
+      items: components['schemas']['CartLine'][];
+      address: components['schemas']['Address'];
+      freight: components['schemas']['Freight'];
+      goodsAmount: number;
+      freightAmount: number;
+      discountAmount: number;
+      payAmount: number;
+      totalCalories: number;
+    };
+    OrderCreateRequest: {
+      /** Format: int64 */
+      addressId: number;
+      /** @enum {integer} */
+      deliveryType: 1 | 2;
+      cartItemIds: number[];
+      /** Format: int64 */
+      deliverySlotId?: number;
+      /** Format: date */
+      deliverySlotDate?: string;
+      remark?: string;
+    };
+    PaymentInitiateRequest: {
+      /** @enum {integer} */
+      payType: 1 | 2;
+    };
+    MockPayNotifyRequest: {
+      payNo: string;
+      /** @enum {integer} */
+      payType: 1 | 2;
+      success: boolean;
+      thirdPartyNo?: string;
+    };
+    Payment: {
+      /** Format: int64 */
+      id: number;
+      payNo: string;
+      orderNo: string;
+      payType: number;
+      status: number;
+      amount: number;
+      /** Format: date-time */
+      expireTime?: string;
+      /** Format: date-time */
+      payTime?: string;
+      cashierPath: string;
+    };
+    OrderItem: {
+      /** Format: int64 */
+      productId: number;
+      productName: string;
+      productCover: string;
+      specName?: string;
+      optionsDesc: string;
+      price: number;
+      quantity: number;
+      subtotal: number;
+      calories: number;
+      subtotalCalories: number;
+    };
+    OrderTimeline: {
+      status: number;
+      statusText: string;
+      operatorName: string;
+      remark?: string;
+      /** Format: date-time */
+      time: string;
+    };
+    Order: {
+      /** Format: int64 */
+      id: number;
+      orderNo: string;
+      status: number;
+      statusText: string;
+      payStatus: number;
+      payType: number;
+      deliveryType: number;
+      goodsAmount: number;
+      freightAmount: number;
+      discountAmount: number;
+      payAmount: number;
+      receiver: string;
+      receiverPhone: string;
+      receiverAddress: string;
+      remark?: string;
+      cancelReason?: string;
+      /** Format: date-time */
+      createTime: string;
+      /** Format: date-time */
+      payTime?: string;
+      /** Format: date-time */
+      cancelTime?: string;
+      payment?: components['schemas']['Payment'];
+      items: components['schemas']['OrderItem'][];
+      timeline: components['schemas']['OrderTimeline'][];
+    };
+    OrderPage: {
+      records: components['schemas']['Order'][];
+      /** Format: int64 */
+      total: number;
+      /** Format: int64 */
+      current: number;
+      /** Format: int64 */
+      size: number;
+      /** Format: int64 */
+      pages: number;
+    };
+    ResultAddress: {
+      code: number;
+      message: string;
+      data: components['schemas']['Address'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultAddressList: {
+      code: number;
+      message: string;
+      data: components['schemas']['Address'][];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultCartLine: {
+      code: number;
+      message: string;
+      data: components['schemas']['CartLine'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultCartSummary: {
+      code: number;
+      message: string;
+      data: components['schemas']['CartSummary'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultOrderSettle: {
+      code: number;
+      message: string;
+      data: components['schemas']['OrderSettle'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultOrder: {
+      code: number;
+      message: string;
+      data: components['schemas']['Order'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultOrderPage: {
+      code: number;
+      message: string;
+      data: components['schemas']['OrderPage'];
+      /** Format: int64 */
+      timestamp: number;
+    };
+    ResultPayment: {
+      code: number;
+      message: string;
+      data: components['schemas']['Payment'];
+      /** Format: int64 */
+      timestamp: number;
+    };
     ShopAuthRequest: {
       username: string;
       password: string;
@@ -340,7 +788,11 @@ export interface components {
     };
   };
   responses: never;
-  parameters: never;
+  parameters: {
+    ShopAddressId: number;
+    ShopCartId: number;
+    ShopOrderNo: string;
+  };
   requestBodies: never;
   headers: never;
   pathItems: never;
@@ -623,6 +1075,523 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ResultStringList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  listAddresses: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultAddressList'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  createAddress: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AddressSaveRequest'];
+      };
+    };
+    responses: {
+      /** @description 创建成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultAddress'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  updateAddress: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: components['parameters']['ShopAddressId'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AddressSaveRequest'];
+      };
+    };
+    responses: {
+      /** @description 修改成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultAddress'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  deleteAddress: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: components['parameters']['ShopAddressId'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 删除成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  setDefaultAddress: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: components['parameters']['ShopAddressId'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 设置成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultAddress'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  getCart: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultCartSummary'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  addCartItem: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CartItemAddRequest'];
+      };
+    };
+    responses: {
+      /** @description 加入成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultCartLine'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  updateCartItem: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: components['parameters']['ShopCartId'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CartItemUpdateRequest'];
+      };
+    };
+    responses: {
+      /** @description 修改成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultCartLine'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  deleteCartItem: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: components['parameters']['ShopCartId'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 删除成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  settleCart: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OrderSettleRequest'];
+      };
+    };
+    responses: {
+      /** @description 结算成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultOrderSettle'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  createOrder: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OrderCreateRequest'];
+      };
+    };
+    responses: {
+      /** @description 下单成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultOrder'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  getOrders: {
+    parameters: {
+      query?: {
+        current?: number;
+        size?: number;
+        status?: number;
+        orderNo?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultOrderPage'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  getOrderDetail: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orderNo: components['parameters']['ShopOrderNo'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 查询成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultOrder'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  cancelOrder: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orderNo: components['parameters']['ShopOrderNo'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 取消成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  initiatePayment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orderNo: components['parameters']['ShopOrderNo'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PaymentInitiateRequest'];
+      };
+    };
+    responses: {
+      /** @description 发起成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultPayment'];
+        };
+      };
+      /** @description 统一错误响应 */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultNull'];
+        };
+      };
+    };
+  };
+  notifyMockPayment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MockPayNotifyRequest'];
+      };
+    };
+    responses: {
+      /** @description 回调处理成功 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResultPayment'];
         };
       };
       /** @description 统一错误响应 */

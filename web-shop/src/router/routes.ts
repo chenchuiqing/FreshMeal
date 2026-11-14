@@ -37,6 +37,7 @@ export const routes: RouteRecordRaw[] = [
           section: 'cart',
           keepAlive: true,
           hideHeader: true,
+          requiresAuth: true,
         },
       },
       {
@@ -48,6 +49,56 @@ export const routes: RouteRecordRaw[] = [
           section: 'member',
           keepAlive: true,
           hideHeader: true,
+        },
+      },
+      {
+        path: 'checkout',
+        name: 'checkout',
+        component: () => import('@/views/checkout/index.vue'),
+        meta: {
+          title: '结算',
+          keepAlive: false,
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'address',
+        name: 'address',
+        component: () => import('@/views/address/index.vue'),
+        meta: {
+          title: '收货地址',
+          keepAlive: false,
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'orders',
+        name: 'orders',
+        component: () => import('@/views/orders/index.vue'),
+        meta: {
+          title: '我的订单',
+          keepAlive: false,
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'orders/:orderNo',
+        name: 'orderDetail',
+        component: () => import('@/views/orders/detail.vue'),
+        meta: {
+          title: '订单详情',
+          keepAlive: false,
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'pay/:orderNo',
+        name: 'pay',
+        component: () => import('@/views/pay/index.vue'),
+        meta: {
+          title: '模拟收银台',
+          keepAlive: false,
+          requiresAuth: true,
         },
       },
       {

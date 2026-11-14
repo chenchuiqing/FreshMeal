@@ -157,8 +157,18 @@
       </section>
 
       <footer class="action-bar">
-        <p class="action-bar__hint">购物车功能即将上线</p>
-        <van-button block type="primary" size="large" disabled>
+        <p class="action-bar__hint">
+          单份 {{ currentCalories }} kcal · 服务端将在下单时再次校验库存
+        </p>
+        <van-button
+          block
+          type="primary"
+          size="large"
+          :loading="addingToCart"
+          :disabled="!canAddToCart"
+          loading-text="加入中…"
+          @click="addSelectedToCart"
+        >
           加入购物车
         </van-button>
       </footer>
@@ -169,8 +179,10 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query';
 import { getShopProductDetail } from '@/api/modules/product';
+import { addCartItem } from '@/api/modules/trade';
 import type { ProductOptionItem } from '@/api/modules/product';
 import { isApiError } from '@/types/api/common';
+import { useUserStore } from '@/store/modules/user';
 import {
   collectDetailGallery,
   formatDelta,
@@ -191,6 +203,9 @@ interface ActiveOptionGroup {
 }
 
 const route = useRoute();
+const router = useRouter();
+const userStore = useUserStore();
+const addingToCart = ref(false);
 const rawId = Array.isArray(route.params.id)
   ? route.params.id[0]
   : route.params.id;
@@ -281,6 +296,46 @@ const currentPrice = computed(() => {
   return price;
 });
 
+const currentCalories = computed(() => {
+  const product = detail.value;
+  if (!product) return 0;
+  let calories = selectedSpec.value?.calories ?? product.calories;
+  for (const group of activeGroups.value) {
+    let selectedIds: number[] = checkboxSelections.value[group.id] ?? [];
+    if (group.type === 1) {
+      const selectedId = radioSelections.value[group.id];
+      selectedIds = selectedId === undefined ? [] : [selectedId];
+    }
+    calories += group.items
+      .filter((item) => selectedIds.includes(item.id))
+      .reduce((total, item) => total + item.calories, 0);
+  }
+  return calories;
+});
+
+const selectedOptionIds = computed(() => {
+  const ids: number[] = [];
+  for (const group of activeGroups.value) {
+    if (group.type === 1) {
+      const id = radioSelections.value[group.id];
+      if (id !== undefined) ids.push(id);
+    } else {
+      ids.push(...(checkboxSelections.value[group.id] ?? []));
+    }
+  }
+  return ids;
+});
+
+const canAddToCart = computed(
+  () =>
+    Boolean(
+      detail.value?.available &&
+        selectedSpec.value &&
+        missingRequired.value.length === 0 &&
+        !addingToCart.value,
+    ),
+);
+
 const gallery = computed(() =>
   detail.value ? collectDetailGallery(detail.value) : [],
 );
@@ -348,6 +403,34 @@ const errorText = computed(() =>
 
 function retry() {
   void refetchDetail();
+}
+
+async function addSelectedToCart() {
+  const product = detail.value;
+  if (!product || !selectedSpec.value || !canAddToCart.value) return;
+  if (!userStore.token) {
+    await router.push({
+      name: 'login',
+      query: { redirect: route.fullPath },
+    });
+    return;
+  }
+  addingToCart.value = true;
+  try {
+    await addCartItem({
+      productId: product.id,
+      specId: selectedSpec.value.id,
+      optionItemIds: selectedOptionIds.value,
+      quantity: 1,
+    });
+    showToast({ message: '已加入购物车', icon: 'success' });
+  } catch (error) {
+    showToast(
+      isApiError(error) ? error.message : '加入购物车失败，请稍后重试',
+    );
+  } finally {
+    addingToCart.value = false;
+  }
 }
 </script>
 

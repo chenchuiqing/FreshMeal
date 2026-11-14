@@ -37,6 +37,24 @@
         </div>
       </section>
 
+      <section class="account-section">
+        <h2>交易服务</h2>
+        <RouterLink class="account-link" to="/orders">
+          <span>
+            <strong>我的订单</strong>
+            <small>查看订单状态、支付流水与时间轴</small>
+          </span>
+          <van-icon name="arrow" />
+        </RouterLink>
+        <RouterLink class="account-link" to="/address">
+          <span>
+            <strong>收货地址</strong>
+            <small>维护默认地址、经纬度与配送位置</small>
+          </span>
+          <van-icon name="arrow" />
+        </RouterLink>
+      </section>
+
       <van-button
         block
         plain
@@ -198,6 +216,31 @@ const logout = async () => {
 
   span {
     color: var(--color-text-secondary);
+  }
+}
+
+.account-link {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--touch-target);
+  padding: var(--space-3) 0;
+  color: var(--color-text);
+  text-decoration: none;
+  border-top: 1px solid var(--color-border);
+
+  > span {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  small {
+    color: var(--color-text-secondary);
+  }
+
+  .van-icon {
+    color: var(--color-text-muted);
   }
 }
 
