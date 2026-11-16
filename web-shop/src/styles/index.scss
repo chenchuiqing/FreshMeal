@@ -142,6 +142,8 @@ textarea::placeholder {
 }
 
 .page {
+  // Grid 行默认会被拉伸平分剩余高度，导致按钮等固定高度元素被撑变形。
+  align-content: start;
   width: min(100%, var(--content-max-width));
   min-height: 100%;
   padding: var(--space-4) var(--page-gutter);
@@ -182,6 +184,19 @@ textarea::placeholder {
   justify-content: space-between;
   padding: var(--space-3) 0 var(--space-5);
   border-bottom: 1px solid var(--color-border);
+
+  // 标题块允许收缩，避免窄屏下挤占右侧操作按钮的空间。
+  > div {
+    min-width: 0;
+  }
+
+  // 操作区保持自身宽度，按钮文字不折行。
+  > .van-button,
+  > .text-button,
+  > strong {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
 
   h1 {
     margin: var(--space-1) 0 var(--space-2);
