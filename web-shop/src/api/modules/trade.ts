@@ -7,6 +7,7 @@ export type CartItemAddRequest = components['schemas']['CartItemAddRequest'];
 export type CartItemUpdateRequest = components['schemas']['CartItemUpdateRequest'];
 export type CartLine = components['schemas']['CartLine'];
 export type CartSummary = components['schemas']['CartSummary'];
+export type DirectPurchaseItem = components['schemas']['DirectPurchaseItem'];
 export type DeliverySlot = components['schemas']['DeliverySlot'];
 export type DeliveryTrace = components['schemas']['DeliveryTrace'];
 export type Order = components['schemas']['Order'];

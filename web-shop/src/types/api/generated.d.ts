@@ -661,8 +661,11 @@ export interface components {
       calories: number;
     };
     CartLine: {
-      /** Format: int64 */
-      id: number;
+      /**
+       * Format: int64
+       * @description 购物车记录ID，立即购买行项为空
+       */
+      id?: number;
       /** Format: int64 */
       productId: number;
       productName: string;
@@ -693,8 +696,17 @@ export interface components {
       /** @enum {integer} */
       deliveryType: 1 | 2;
       cartItemIds?: number[];
+      directItems?: components['schemas']['DirectPurchaseItem'][];
       /** Format: int64 */
       userCouponId?: number;
+    };
+    DirectPurchaseItem: {
+      /** Format: int64 */
+      productId: number;
+      /** Format: int64 */
+      specId?: number;
+      optionItemIds?: number[];
+      quantity: number;
     };
     Freight: {
       /** Format: int64 */
@@ -719,7 +731,8 @@ export interface components {
       addressId: number;
       /** @enum {integer} */
       deliveryType: 1 | 2;
-      cartItemIds: number[];
+      cartItemIds?: number[];
+      directItems?: components['schemas']['DirectPurchaseItem'][];
       /** Format: int64 */
       deliverySlotId?: number;
       /** Format: date */

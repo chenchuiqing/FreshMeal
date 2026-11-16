@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.freshmeal.common.BusinessException;
 import com.freshmeal.dto.user.CartItemAddRequest;
 import com.freshmeal.dto.user.CartItemUpdateRequest;
+import com.freshmeal.dto.user.DirectPurchaseItem;
 import com.freshmeal.entity.Cart;
 import com.freshmeal.entity.Product;
 import com.freshmeal.entity.ProductOption;
@@ -195,6 +196,75 @@ public class CartServiceImpl implements CartService {
         return carts.stream()
                 .map(this::toPricedLine)
                 .toList();
+    }
+
+    @Override
+    public List<PricedCartLine> priceDirectPurchase(Long userId, List<DirectPurchaseItem> items) {
+        if (items == null || items.isEmpty()) {
+            throw new BusinessException(ErrorCode.CART_ITEM_UNAVAILABLE.getCode(),
+                    ErrorCode.CART_ITEM_UNAVAILABLE.getMessage());
+        }
+        List<PricedCartLine> lines = items.stream()
+                .map(this::toDirectPricedLine)
+                .toList();
+
+        Map<Long, List<PricedCartLine>> linesByProduct = lines.stream()
+                .collect(Collectors.groupingBy(line -> line.product().getId(),
+                        LinkedHashMap::new, Collectors.toList()));
+        for (Map.Entry<Long, List<PricedCartLine>> entry : linesByProduct.entrySet()) {
+            Product product = entry.getValue().get(0).product();
+            int requestedQuantity = entry.getValue().stream()
+                    .mapToInt(line -> line.line().quantity())
+                    .sum();
+            if (product.getStatus() == null || product.getStatus() != 1
+                    || product.getStock() == null || product.getStock() < requestedQuantity) {
+                throw new BusinessException(ErrorCode.CART_ITEM_UNAVAILABLE.getCode(),
+                        ErrorCode.CART_ITEM_UNAVAILABLE.getMessage());
+            }
+        }
+        return lines;
+    }
+
+    private PricedCartLine toDirectPricedLine(DirectPurchaseItem item) {
+        Product product = requirePurchasableProduct(item.productId());
+        Selection selection = validateSelection(product, item.specId(),
+                nullToEmpty(item.optionItemIds()), List.of());
+        int quantity = item.quantity() == null ? 1 : item.quantity();
+        requireProjectedStock(product, quantity);
+        CartLineVO line = buildDirectLine(product, selection, quantity);
+        return new PricedCartLine(line, product,
+                selection.spec() == null ? null : selection.spec());
+    }
+
+    private CartLineVO buildDirectLine(Product product, Selection selection, int quantity) {
+        BigDecimal unitPrice = unitPrice(product, selection);
+        int calories = selection.spec() == null
+                ? product.getCalories()
+                : selection.spec().getCalories();
+        calories += selection.options().stream()
+                .mapToInt(CartOptionVO::calories)
+                .sum();
+        BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
+        boolean available = product.getStatus() != null && product.getStatus() == 1
+                && product.getStock() != null && product.getStock() >= quantity;
+        return new CartLineVO(
+                null,
+                product.getId(),
+                product.getName(),
+                product.getCover(),
+                product.getUnit(),
+                selection.spec() == null ? null : selection.spec().getId(),
+                selection.spec() == null ? null : selection.spec().getName(),
+                selection.options(),
+                optionsDescription(selection.options()),
+                unitPrice,
+                subtotal,
+                calories,
+                calories * quantity,
+                quantity,
+                true,
+                available
+        );
     }
 
     private PricedCartLine toPricedLine(Cart cart) {

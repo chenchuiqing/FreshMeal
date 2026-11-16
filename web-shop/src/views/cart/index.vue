@@ -17,7 +17,7 @@
       <van-button plain type="primary" @click="refetch">重新加载</van-button>
     </div>
     <van-empty
-      v-else-if="cart && cart.items.length === 0"
+      v-else-if="cart && cartRows.length === 0"
       description="购物车还是空的"
     >
       <RouterLink class="empty-action" to="/catalog">去选餐</RouterLink>
@@ -26,7 +26,7 @@
     <template v-else-if="cart">
       <ul class="cart-list" aria-label="购物车商品">
         <li
-          v-for="item in cart.items"
+          v-for="item in cartRows"
           :key="item.id"
           class="cart-card surface-card"
           :class="{ 'cart-card--unavailable': !item.available }"
@@ -235,6 +235,9 @@ interface EditorGroup {
   items: ProductOptionItem[];
 }
 
+/** 购物车行项必定带购物车记录 ID，立即购买行项才会缺失该字段。 */
+type CartRow = CartLine & { id: number };
+
 const router = useRouter();
 const queryClient = useQueryClient();
 const editorVisible = ref(false);
@@ -255,12 +258,19 @@ const {
   queryFn: ({ signal }) => getCart(signal),
 });
 
+/** 购物车返回的行项均来自购物车表，ID 必定存在。 */
+const cartRows = computed<CartRow[]>(() =>
+  (cart.value?.items ?? []).filter(
+    (item): item is CartRow => typeof item.id === 'number',
+  ),
+);
+
 const errorText = computed(() =>
   isApiError(error.value) ? error.value.message : '购物车加载失败',
 );
 
 const selectedLine = computed(() =>
-  cart.value?.items.find((item) => item.id === selectedLineId.value),
+  cartRows.value.find((item) => item.id === selectedLineId.value),
 );
 const editorProductId = computed(() => selectedLine.value?.productId);
 
@@ -372,17 +382,17 @@ function messageOf(error: unknown, fallback: string) {
   return isApiError(error) ? error.message : fallback;
 }
 
-function toggleChecked(item: CartLine, checked: boolean) {
+function toggleChecked(item: CartRow, checked: boolean) {
   cartMutation.mutate({ id: item.id, body: { checked } });
 }
 
-function changeQuantity(item: CartLine, quantity: number | string) {
+function changeQuantity(item: CartRow, quantity: number | string) {
   const value = Number(quantity);
   if (!Number.isInteger(value) || value < 1 || value > 99) return;
   cartMutation.mutate({ id: item.id, body: { quantity: value } });
 }
 
-function openEditor(item: CartLine) {
+function openEditor(item: CartRow) {
   selectedLineId.value = item.id;
   editorVisible.value = true;
 }
@@ -415,7 +425,7 @@ async function saveEditor() {
   }
 }
 
-function confirmDelete(item: CartLine) {
+function confirmDelete(item: CartRow) {
   void showConfirmDialog({
     title: '删除商品',
     message: `从购物车移除“${item.productName}”？`,
