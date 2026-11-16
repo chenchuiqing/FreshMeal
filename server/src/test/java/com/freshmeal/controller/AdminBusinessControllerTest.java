@@ -166,6 +166,32 @@ class AdminBusinessControllerTest {
     }
 
     @Test
+    void adminPageQueriesWithoutOptionalFiltersReturnOk() throws Exception {
+        String token = adminToken();
+
+        mockMvc.perform(get("/api/admin/order/page")
+                        .header("Authorization", "Bearer " + token)
+                        .param("current", "1")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.records").isArray());
+
+        mockMvc.perform(get("/api/admin/delivery/order/page")
+                        .header("Authorization", "Bearer " + token)
+                        .param("current", "1")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.records").isArray());
+
+        mockMvc.perform(get("/api/admin/batch/page")
+                        .header("Authorization", "Bearer " + token)
+                        .param("current", "1")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.records").isArray());
+    }
+
+    @Test
     void adminCanMaintainDeliveryConfigurationAndRiderAccounts()
             throws Exception {
         String token = adminToken();

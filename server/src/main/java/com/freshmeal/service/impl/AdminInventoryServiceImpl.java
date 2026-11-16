@@ -45,6 +45,8 @@ public class AdminInventoryServiceImpl implements AdminInventoryService {
 
     @Override
     public PageResult<AdminBatchVO> batches(AdminBatchQuery query) {
+        String batchNoFilter = query.getBatchNo() != null && !query.getBatchNo().isBlank()
+                ? query.getBatchNo().trim() : null;
         Page<ProductBatch> page = productBatchMapper.selectPage(
                 new Page<>(query.getCurrent(), query.getSize()),
                 Wrappers.<ProductBatch>lambdaQuery()
@@ -52,8 +54,8 @@ public class AdminInventoryServiceImpl implements AdminInventoryService {
                                 ProductBatch::getProductId, query.getProductId())
                         .eq(query.getStatus() != null,
                                 ProductBatch::getStatus, query.getStatus())
-                        .like(query.getBatchNo() != null && !query.getBatchNo().isBlank(),
-                                ProductBatch::getBatchNo, query.getBatchNo().trim())
+                        .like(batchNoFilter != null,
+                                ProductBatch::getBatchNo, batchNoFilter)
                         .orderByAsc(ProductBatch::getExpireDate)
                         .orderByAsc(ProductBatch::getId));
         return PageResult.of(toBatchVos(page.getRecords()),

@@ -287,13 +287,15 @@ public class DeliveryOrderServiceImpl implements DeliveryOrderService {
 
     @Override
     public PageResult<AdminDeliveryVO> adminPage(AdminDeliveryQuery query) {
+        String orderNoFilter = query.getOrderNo() != null && !query.getOrderNo().isBlank()
+                ? query.getOrderNo().trim() : null;
         Page<DeliveryOrder> page = deliveryOrderMapper.selectPage(
                 new Page<>(query.getCurrent(), query.getSize()),
                 Wrappers.<DeliveryOrder>lambdaQuery()
                         .eq(query.getStatus() != null,
                                 DeliveryOrder::getStatus, query.getStatus())
-                        .like(query.getOrderNo() != null && !query.getOrderNo().isBlank(),
-                                DeliveryOrder::getOrderNo, query.getOrderNo().trim())
+                        .like(orderNoFilter != null,
+                                DeliveryOrder::getOrderNo, orderNoFilter)
                         .orderByDesc(DeliveryOrder::getCreateTime)
                         .orderByDesc(DeliveryOrder::getId));
         List<AdminDeliveryVO> records = page.getRecords().stream()

@@ -370,7 +370,8 @@ class ShopTradeControllerTest {
             throws Exception {
         String token = login();
         int productBefore = requireProduct().getStock();
-        int firstBatchBefore = requireBatchStock(5001L);
+        Long fefoBatchId = requireFefoBatchId();
+        int firstBatchBefore = requireBatchStock(fefoBatchId);
 
         long cartId = addItem(token, 1, List.of(3001L));
         mockMvc.perform(get("/api/shop/cart")
@@ -401,7 +402,7 @@ class ShopTradeControllerTest {
 
         String paidOrderNo = createOrder(token, addressId, cartIds);
         assertThat(requireProduct().getStock()).isEqualTo(productBefore - 1);
-        assertThat(requireBatchStock(5001L)).isEqualTo(firstBatchBefore - 1);
+        assertThat(requireBatchStock(fefoBatchId)).isEqualTo(firstBatchBefore - 1);
 
         String payNo = initiatePayment(token, paidOrderNo);
         notifyPayment(token, payNo, 1);
@@ -431,8 +432,19 @@ class ShopTradeControllerTest {
                 .eq(Order::getOrderNo, timeoutOrderNo));
         assertThat(cancelled.getStatus()).isEqualTo(9);
         assertThat(requireProduct().getStock()).isEqualTo(stockAfterFirstCallback);
-        assertThat(requireBatchStock(5001L)).isEqualTo(firstBatchBefore - 1);
+        assertThat(requireBatchStock(fefoBatchId)).isEqualTo(firstBatchBefore - 1);
 
+    }
+
+    @Test
+    void shopOrderPageWithoutOrderNoFilterReturnsOk() throws Exception {
+        String userToken = login();
+        mockMvc.perform(get("/api/shop/order/page")
+                        .header("Authorization", userToken)
+                        .param("current", "1")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.records").isArray());
     }
 
     private String login() throws Exception {
@@ -606,6 +618,13 @@ class ShopTradeControllerTest {
         Product product = productMapper.selectById(101L);
         assertThat(product).isNotNull();
         return product;
+    }
+
+    private Long requireFefoBatchId() {
+        List<com.freshmeal.entity.ProductBatch> batches =
+                productBatchMapper.selectAvailableFefo(101L);
+        assertThat(batches).isNotEmpty();
+        return batches.get(0).getId();
     }
 
     private int requireBatchStock(Long batchId) {

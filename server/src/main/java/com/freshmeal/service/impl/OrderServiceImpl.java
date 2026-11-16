@@ -181,6 +181,8 @@ public class OrderServiceImpl implements OrderService {
                 && (query.getStatus() < 0 || query.getStatus() > 9)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST.getCode(), "订单状态筛选值不合法");
         }
+        String orderNoFilter = StringUtils.hasText(query.getOrderNo())
+                ? query.getOrderNo().trim() : null;
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<Order> page =
                 orderMapper.selectPage(
                         new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
@@ -189,8 +191,8 @@ public class OrderServiceImpl implements OrderService {
                                 .eq(Order::getUserId, userId)
                                 .eq(query.getStatus() != null, Order::getStatus,
                                         query.getStatus())
-                                .like(StringUtils.hasText(query.getOrderNo()),
-                                        Order::getOrderNo, query.getOrderNo().trim())
+                                .like(orderNoFilter != null,
+                                        Order::getOrderNo, orderNoFilter)
                                 .orderByDesc(Order::getCreateTime)
                                 .orderByDesc(Order::getId));
         List<OrderVO> records = page.getRecords().stream()

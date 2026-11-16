@@ -48,6 +48,8 @@ public class AdminOrderServiceImpl implements AdminOrderService {
                 && userIds.isEmpty()) {
             return PageResult.of(List.of(), 0, query.getCurrent(), query.getSize());
         }
+        String orderNoFilter = query.getOrderNo() != null && !query.getOrderNo().isBlank()
+                ? query.getOrderNo().trim() : null;
         Page<Order> page = orderMapper.selectPage(
                 new Page<>(query.getCurrent(), query.getSize()),
                 Wrappers.<Order>lambdaQuery()
@@ -55,8 +57,8 @@ public class AdminOrderServiceImpl implements AdminOrderService {
                                 Order::getUserId, userIds)
                         .eq(query.getStatus() != null,
                                 Order::getStatus, query.getStatus())
-                        .like(query.getOrderNo() != null && !query.getOrderNo().isBlank(),
-                                Order::getOrderNo, query.getOrderNo().trim())
+                        .like(orderNoFilter != null,
+                                Order::getOrderNo, orderNoFilter)
                         .ge(query.getStartTime() != null,
                                 Order::getCreateTime, query.getStartTime())
                         .le(query.getEndTime() != null,

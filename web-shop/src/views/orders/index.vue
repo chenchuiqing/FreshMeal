@@ -173,6 +173,7 @@ function formatDateTime(value: string) {
 <style scoped lang="scss">
 .orders-page {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   padding-top: var(--space-5);
 }
@@ -234,7 +235,7 @@ function formatDateTime(value: string) {
 
 .order-card__body {
   display: grid;
-  grid-template-columns: 4rem 1fr auto;
+  grid-template-columns: 4rem minmax(0, 1fr) auto;
   gap: var(--space-3);
   align-items: center;
 
