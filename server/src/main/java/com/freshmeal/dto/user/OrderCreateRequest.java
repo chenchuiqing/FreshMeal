@@ -1,5 +1,6 @@
 package com.freshmeal.dto.user;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
@@ -12,9 +13,11 @@ public record OrderCreateRequest(
         @NotNull(message = "配送方式不能为空")
         Integer deliveryType,
 
-        @NotNull(message = "购物车记录不能为空")
-        @Size(min = 1, max = 100, message = "请选择1到100条购物车记录")
+        @Size(max = 100, message = "请选择1到100条购物车记录")
         List<Long> cartItemIds,
+
+        @Size(max = 20, message = "最多结算20个立即购买项")
+        List<@Valid DirectPurchaseItem> directItems,
 
         Long deliverySlotId,
 

@@ -133,7 +133,14 @@
     <section class="checkout-section surface-card">
       <div class="section-title">
         <h2>餐品清单</h2>
-        <RouterLink class="text-button" to="/cart">返回修改</RouterLink>
+        <RouterLink
+          v-if="isDirectMode"
+          class="text-button"
+          :to="{ name: 'productDetail', params: { id: directProductId } }"
+        >
+          返回修改
+        </RouterLink>
+        <RouterLink v-else class="text-button" to="/cart">返回修改</RouterLink>
       </div>
       <div v-if="cartLoading || settleLoading" class="state-panel">
         <van-loading vertical>正在计算最终金额…</van-loading>
@@ -144,7 +151,7 @@
       </div>
       <template v-else-if="settle">
         <ul class="item-list">
-          <li v-for="item in settle.items" :key="item.id">
+          <li v-for="item in settle.items" :key="item.id ?? item.productId">
             <img :src="item.cover" :alt="item.productName" />
             <div>
               <strong>{{ item.productName }}</strong>
@@ -258,12 +265,15 @@ import {
 import { isApiError } from '@/types/api/common';
 import { listUserCoupons } from '@/api/modules/marketing';
 import type { UserCoupon } from '@/api/modules/marketing';
+import { useCheckoutStore } from '@/store/modules/checkout';
 import { formatPrice } from '@/utils/product';
 
 defineOptions({ name: 'CheckoutPage' });
 
 const router = useRouter();
+const route = useRoute();
 const queryClient = useQueryClient();
+const checkoutStore = useCheckoutStore();
 const deliveryType = ref<1 | 2>(1);
 const selectedAddressId = ref<number | null>(null);
 const addressPopup = ref(false);
@@ -271,6 +281,16 @@ const remark = ref('');
 const submitting = ref(false);
 const selectedSlotKey = ref<string | null>(null);
 const selectedUserCouponId = ref<number | null>(null);
+
+/** 立即购买模式：结算只包含草稿商品，不读取购物车勾选项。 */
+const isDirectMode = computed(
+  () =>
+    route.query.mode === 'direct' &&
+    checkoutStore.directDraft !== null,
+);
+const directProductId = computed(
+  () => checkoutStore.directDraft?.productId ?? 0,
+);
 
 const {
   data: userCoupons,
@@ -385,12 +405,14 @@ const {
 } = useQuery({
   queryKey: ['shop', 'cart'],
   queryFn: ({ signal }) => getCart(signal),
+  enabled: computed(() => !isDirectMode.value),
 });
 
 const checkedCartIds = computed(() =>
   (cart.value?.items ?? [])
     .filter((item) => item.checked && item.available)
-    .map((item) => item.id),
+    .map((item) => item.id)
+    .filter((id): id is number => typeof id === 'number'),
 );
 
 const usableCoupons = computed(() =>
@@ -401,12 +423,26 @@ const usableCoupons = computed(() =>
   }),
 );
 
+const directItems = computed(() => {
+  const draft = checkoutStore.directDraft;
+  if (!isDirectMode.value || !draft) return undefined;
+  return [
+    {
+      productId: draft.productId,
+      specId: draft.specId,
+      optionItemIds: draft.optionItemIds,
+      quantity: draft.quantity,
+    },
+  ];
+});
+
 const settleParams = computed(() =>
   currentAddress.value
     ? {
         addressId: currentAddress.value.id,
         deliveryType: deliveryType.value,
-        cartItemIds: checkedCartIds.value,
+        cartItemIds: isDirectMode.value ? undefined : checkedCartIds.value,
+        directItems: directItems.value,
         userCouponId: selectedUserCouponId.value ?? undefined,
       }
     : undefined,
@@ -426,6 +462,7 @@ const {
     deliveryType,
     checkedCartIds,
     selectedUserCouponId,
+    directItems,
   ],
   queryFn: ({ signal }) => {
     const params = settleParams.value;
@@ -435,7 +472,9 @@ const {
   enabled: computed(
     () =>
       settleParams.value !== undefined &&
-      checkedCartIds.value.length > 0 &&
+      (isDirectMode.value
+        ? directItems.value !== undefined
+        : checkedCartIds.value.length > 0) &&
       !cartLoading.value &&
       !cartFailed.value,
   ),
@@ -445,7 +484,9 @@ const settleError = computed(
   () =>
     settleFailed.value ||
     cartFailed.value ||
-    (cart.value && checkedCartIds.value.length === 0),
+    (!isDirectMode.value &&
+      cart.value !== undefined &&
+      checkedCartIds.value.length === 0),
 );
 const settleErrorText = computed(() => {
   if (cartFailed.value) {
@@ -453,7 +494,11 @@ const settleErrorText = computed(() => {
       ? cartQueryError.value.message
       : '购物车加载失败';
   }
-  if (cart.value && checkedCartIds.value.length === 0) {
+  if (
+    !isDirectMode.value &&
+    cart.value !== undefined &&
+    checkedCartIds.value.length === 0
+  ) {
     return '请先在购物车选择可购买商品';
   }
   return isApiError(settleQueryError.value)
@@ -484,12 +529,14 @@ async function submitOrder() {
     const order = await createOrder({
       addressId: address.id,
       deliveryType: deliveryType.value,
-      cartItemIds: checkedCartIds.value,
+      cartItemIds: isDirectMode.value ? undefined : checkedCartIds.value,
+      directItems: directItems.value,
       deliverySlotId: selectedSlot.value?.id,
       deliverySlotDate: selectedSlot.value?.date,
       remark: remark.value.trim() || undefined,
       userCouponId: selectedUserCouponId.value ?? undefined,
     });
+    checkoutStore.clearDirectDraft();
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['shop', 'cart'] }),
       queryClient.invalidateQueries({ queryKey: ['shop', 'orders'] }),

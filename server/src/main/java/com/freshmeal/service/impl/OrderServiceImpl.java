@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.freshmeal.common.BusinessException;
 import com.freshmeal.common.PageResult;
+import com.freshmeal.dto.user.DirectPurchaseItem;
 import com.freshmeal.dto.user.OrderCreateRequest;
 import com.freshmeal.dto.user.OrderQuery;
 import com.freshmeal.dto.user.OrderSettleRequest;
@@ -43,6 +44,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -88,7 +90,7 @@ public class OrderServiceImpl implements OrderService {
     public OrderSettleVO settle(Long userId, OrderSettleRequest request) {
         validateDeliveryType(request.deliveryType());
         Settlement settlement = buildSettlement(userId, request.addressId(),
-                request.deliveryType(), request.cartItemIds(),
+                request.deliveryType(), request.cartItemIds(), request.directItems(),
                 request.userCouponId());
         return new OrderSettleVO(
                 settlement.lines().stream().map(PricedCartLine::line).toList(),
@@ -107,7 +109,7 @@ public class OrderServiceImpl implements OrderService {
     public OrderVO create(Long userId, OrderCreateRequest request) {
         validateDeliveryType(request.deliveryType());
         Settlement settlement = buildSettlement(userId, request.addressId(),
-                request.deliveryType(), request.cartItemIds(),
+                request.deliveryType(), request.cartItemIds(), request.directItems(),
                 request.userCouponId());
         DeliverySlot slot = validateSlot(request.deliveryType(),
                 request.deliverySlotId(), request.deliverySlotDate());
@@ -148,19 +150,21 @@ public class OrderServiceImpl implements OrderService {
         items.forEach(orderItemMapper::insert);
         inventoryService.deductForOrder(items, order.getOrderNo(), userId);
 
-        request.cartItemIds().stream()
-                .filter(Objects::nonNull)
-                .distinct()
-                .map(cartId -> {
-                    com.freshmeal.entity.Cart cart = cartMapper.selectById(cartId);
-                    if (cart == null || !userId.equals(cart.getUserId())) {
-                        throw new BusinessException(ErrorCode.CART_ITEM_UNAVAILABLE.getCode(),
-                                ErrorCode.CART_ITEM_UNAVAILABLE.getMessage());
-                    }
-                    return cart;
-                })
-                .toList()
-                .forEach(cartMapper::deleteById);
+        if (request.cartItemIds() != null) {
+            request.cartItemIds().stream()
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .map(cartId -> {
+                        com.freshmeal.entity.Cart cart = cartMapper.selectById(cartId);
+                        if (cart == null || !userId.equals(cart.getUserId())) {
+                            throw new BusinessException(ErrorCode.CART_ITEM_UNAVAILABLE.getCode(),
+                                    ErrorCode.CART_ITEM_UNAVAILABLE.getMessage());
+                        }
+                        return cart;
+                    })
+                    .toList()
+                    .forEach(cartMapper::deleteById);
+        }
 
         OrderStatusLog log = new OrderStatusLog();
         log.setOrderId(order.getId());
@@ -275,13 +279,20 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private Settlement buildSettlement(Long userId, Long addressId, int deliveryType,
-            List<Long> cartItemIds, Long userCouponId) {
+            List<Long> cartItemIds, List<DirectPurchaseItem> directItems,
+            Long userCouponId) {
         Address address = addressMapper.selectById(addressId);
         if (address == null || !userId.equals(address.getUserId())) {
             throw new BusinessException(ErrorCode.ADDRESS_NOT_FOUND.getCode(),
                     ErrorCode.ADDRESS_NOT_FOUND.getMessage());
         }
-        List<PricedCartLine> lines = cartService.priceSelected(userId, cartItemIds, true);
+        List<PricedCartLine> lines = new ArrayList<>();
+        if (cartItemIds != null && !cartItemIds.isEmpty()) {
+            lines.addAll(cartService.priceSelected(userId, cartItemIds, true));
+        }
+        if (directItems != null && !directItems.isEmpty()) {
+            lines.addAll(cartService.priceDirectPurchase(userId, directItems));
+        }
         if (lines.isEmpty()) {
             throw new BusinessException(ErrorCode.CART_ITEM_UNAVAILABLE.getCode(),
                     ErrorCode.CART_ITEM_UNAVAILABLE.getMessage());

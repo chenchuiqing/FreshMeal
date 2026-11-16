@@ -173,17 +173,29 @@
         <p class="action-bar__hint">
           单份 {{ currentCalories }} kcal · 服务端将在下单时再次校验库存
         </p>
-        <van-button
-          block
-          type="primary"
-          size="large"
-          :loading="addingToCart"
-          :disabled="!canAddToCart"
-          loading-text="加入中…"
-          @click="addSelectedToCart"
-        >
-          加入购物车
-        </van-button>
+        <div class="action-bar__buttons">
+          <van-button
+            block
+            plain
+            type="primary"
+            size="large"
+            :loading="addingToCart"
+            :disabled="!canPurchase"
+            loading-text="加入中…"
+            @click="addSelectedToCart"
+          >
+            加入购物车
+          </van-button>
+          <van-button
+            block
+            type="primary"
+            size="large"
+            :disabled="!canPurchase"
+            @click="buyNow"
+          >
+            立即购买
+          </van-button>
+        </div>
       </footer>
     </template>
   </div>
@@ -201,6 +213,7 @@ import { addCartItem } from '@/api/modules/trade';
 import type { ProductOptionItem } from '@/api/modules/product';
 import { isApiError } from '@/types/api/common';
 import { useUserStore } from '@/store/modules/user';
+import { useCheckoutStore } from '@/store/modules/checkout';
 import {
   collectDetailGallery,
   formatDelta,
@@ -223,6 +236,7 @@ interface ActiveOptionGroup {
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
+const checkoutStore = useCheckoutStore();
 const queryClient = useQueryClient();
 const addingToCart = ref(false);
 const togglingFavorite = ref(false);
@@ -366,14 +380,17 @@ const selectedOptionIds = computed(() => {
   return ids;
 });
 
-const canAddToCart = computed(
+const canPurchase = computed(
   () =>
     Boolean(
       detail.value?.available &&
         selectedSpec.value &&
-        missingRequired.value.length === 0 &&
-        !addingToCart.value,
+        missingRequired.value.length === 0,
     ),
+);
+
+const canAddToCart = computed(
+  () => canPurchase.value && !addingToCart.value,
 );
 
 const gallery = computed(() =>
@@ -471,6 +488,36 @@ async function addSelectedToCart() {
   } finally {
     addingToCart.value = false;
   }
+}
+
+/** 立即购买：把当前规格与选项写入草稿后进入结算页，不写入购物车。 */
+async function buyNow() {
+  const product = detail.value;
+  const spec = selectedSpec.value;
+  if (!product || !spec || !canPurchase.value) return;
+  if (!userStore.token) {
+    await router.push({
+      name: 'login',
+      query: { redirect: route.fullPath },
+    });
+    return;
+  }
+  const optionIds = selectedOptionIds.value;
+  checkoutStore.setDirectDraft({
+    productId: product.id,
+    productName: product.name,
+    specId: spec.id,
+    specName: spec.name,
+    optionItemIds: optionIds,
+    optionsDesc: activeGroups.value
+      .flatMap((group) =>
+        group.items.filter((item) => optionIds.includes(item.id)),
+      )
+      .map((item) => item.name)
+      .join('、'),
+    quantity: 1,
+  });
+  await router.push({ name: 'checkout', query: { mode: 'direct' } });
 }
 
 async function toggleFavoriteAction() {
@@ -775,5 +822,11 @@ async function toggleFavoriteAction() {
   font-size: var(--text-secondary);
   color: var(--color-text-muted);
   text-align: center;
+}
+
+.action-bar__buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
 }
 </style>

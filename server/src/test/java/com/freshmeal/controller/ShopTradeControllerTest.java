@@ -130,6 +130,9 @@ class ShopTradeControllerTest {
                             .eq(OrderItem::getOrderId, order.getId()));
             if (order.getStatus() != 9) {
                 inventoryService.restoreForOrder(orderNo, order.getUserId(), "测试清理");
+            }
+            // 销量仅在支付成功时递增，只有付过款的订单才需要回退，否则会凭空扣减。
+            if (order.getPayStatus() != null && order.getPayStatus() == 1) {
                 for (OrderItem item : items) {
                     Product product = productMapper.selectById(item.getProductId());
                     if (product != null && product.getSalesCount() != null) {
