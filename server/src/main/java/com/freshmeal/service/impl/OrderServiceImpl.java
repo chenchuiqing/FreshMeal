@@ -121,7 +121,8 @@ public class OrderServiceImpl implements OrderService {
         order.setFreightAmount(settlement.freight().freightAmount());
         order.setDiscountAmount(settlement.discountAmount());
         order.setPayAmount(settlement.payAmount());
-        order.setDeliveryManFee(BigDecimal.ZERO);
+        // 骑手提成 = 用户支付的配送费，自提时运费为 0 提成自然为 0。
+        order.setDeliveryManFee(settlement.freight().freightAmount());
         order.setReceiver(settlement.address().receiver());
         order.setReceiverPhone(settlement.address().phone());
         order.setReceiverAddress(settlement.address().fullAddress());

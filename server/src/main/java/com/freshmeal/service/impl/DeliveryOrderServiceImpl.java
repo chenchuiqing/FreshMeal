@@ -111,7 +111,7 @@ public class DeliveryOrderServiceImpl implements DeliveryOrderService {
                     order.getReceiverAddress(), "订单已送达");
         }
         if (targetStatus == DeliveryStatus.DELIVERED) {
-            completeRiderStatistics(delivery.getDeliveryManId());
+            completeRiderStatistics(delivery.getDeliveryManId(), delivery.getManFee());
         }
     }
 
@@ -255,10 +255,11 @@ public class DeliveryOrderServiceImpl implements DeliveryOrderService {
                                 DeliveryStatus.ASSIGNED.getCode(),
                                 DeliveryStatus.DELIVERING.getCode()));
         return new RiderStatisticsVO(
-                valueOrZero(rider.getTodayOrderCount()),
+                (int) deliveryOrderMapper.countTodayDelivered(riderId),
                 valueOrZero(rider.getTotalOrderCount()),
                 (int) active,
                 zeroIfNull(rider.getTotalIncome()),
+                deliveryOrderMapper.sumTodayManFee(riderId),
                 rider.getRating(),
                 rider.getOnlineStatus(),
                 rider.getWorkStatus()
@@ -478,7 +479,7 @@ public class DeliveryOrderServiceImpl implements DeliveryOrderService {
         deliveryManMapper.updateById(rider);
     }
 
-    private void completeRiderStatistics(Long riderId) {
+    private void completeRiderStatistics(Long riderId, BigDecimal manFee) {
         if (riderId == null) {
             return;
         }
@@ -488,7 +489,8 @@ public class DeliveryOrderServiceImpl implements DeliveryOrderService {
         }
         rider.setTodayOrderCount(valueOrZero(rider.getTodayOrderCount()) + 1);
         rider.setTotalOrderCount(valueOrZero(rider.getTotalOrderCount()) + 1);
-        rider.setTotalIncome(zeroIfNull(rider.getTotalIncome()));
+        rider.setTotalIncome(zeroIfNull(rider.getTotalIncome())
+                .add(manFee == null ? BigDecimal.ZERO : manFee));
         if (!hasActiveTasks(riderId)) {
             rider.setWorkStatus(0);
         }

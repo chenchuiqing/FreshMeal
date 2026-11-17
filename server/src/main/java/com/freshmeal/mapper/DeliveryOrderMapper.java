@@ -2,6 +2,7 @@ package com.freshmeal.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.freshmeal.entity.DeliveryOrder;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
@@ -90,4 +91,20 @@ public interface DeliveryOrderMapper extends BaseMapper<DeliveryOrder> {
             LIMIT #{limit}
             """)
     List<DeliveryOrder> selectWaiting(@Param("limit") int limit);
+
+    @Select("""
+            SELECT COUNT(*) FROM t_delivery_order
+            WHERE delivery_man_id = #{riderId}
+              AND status = 4
+              AND receive_time >= CURDATE()
+            """)
+    long countTodayDelivered(@Param("riderId") Long riderId);
+
+    @Select("""
+            SELECT IFNULL(SUM(man_fee), 0) FROM t_delivery_order
+            WHERE delivery_man_id = #{riderId}
+              AND status = 4
+              AND receive_time >= CURDATE()
+            """)
+    BigDecimal sumTodayManFee(@Param("riderId") Long riderId);
 }

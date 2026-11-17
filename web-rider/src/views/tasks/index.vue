@@ -173,7 +173,7 @@ const tasksErrorText = computed(() =>
 );
 const isOnline = computed(() => statistics.value?.onlineStatus === 1);
 const incomeText = computed(() =>
-  (statistics.value?.totalIncome ?? 0).toFixed(2),
+  (statistics.value?.todayIncome ?? 0).toFixed(2),
 );
 const ratingText = computed(() =>
   statistics.value ? statistics.value.rating.toFixed(1) : '--',

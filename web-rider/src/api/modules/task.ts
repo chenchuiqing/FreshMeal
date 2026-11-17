@@ -25,6 +25,7 @@ export interface RiderStatistics {
   totalOrderCount: number;
   activeOrderCount: number;
   totalIncome: number;
+  todayIncome: number;
   rating: number;
   onlineStatus: number;
   workStatus: number;

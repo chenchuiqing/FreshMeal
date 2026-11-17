@@ -859,7 +859,7 @@ public class InventoryServiceImpl implements InventoryService {
     public OrderSettleVO settle(Long userId, OrderSettleRequest request) {
         validateDeliveryType(request.deliveryType());
         Settlement settlement = buildSettlement(userId, request.addressId(),
-                request.deliveryType(), request.cartItemIds(),
+                request.deliveryType(), request.cartItemIds(), request.directItems(),
                 request.userCouponId());
         return new OrderSettleVO(
                 settlement.lines().stream().map(PricedCartLine::line).toList(),
@@ -878,7 +878,7 @@ public class InventoryServiceImpl implements InventoryService {
     public OrderVO create(Long userId, OrderCreateRequest request) {
         validateDeliveryType(request.deliveryType());
         Settlement settlement = buildSettlement(userId, request.addressId(),
-                request.deliveryType(), request.cartItemIds(),
+                request.deliveryType(), request.cartItemIds(), request.directItems(),
                 request.userCouponId());
         DeliverySlot slot = validateSlot(request.deliveryType(),
                 request.deliverySlotId(), request.deliverySlotDate());
@@ -890,7 +890,8 @@ public class InventoryServiceImpl implements InventoryService {
         order.setFreightAmount(settlement.freight().freightAmount());
         order.setDiscountAmount(settlement.discountAmount());
         order.setPayAmount(settlement.payAmount());
-        order.setDeliveryManFee(BigDecimal.ZERO);
+        // 骑手提成 = 用户支付的配送费，自提时运费为 0 提成自然为 0。
+        order.setDeliveryManFee(settlement.freight().freightAmount());
         order.setReceiver(settlement.address().receiver());
         order.setReceiverPhone(settlement.address().phone());
         order.setReceiverAddress(settlement.address().fullAddress());
@@ -919,19 +920,21 @@ public class InventoryServiceImpl implements InventoryService {
         items.forEach(orderItemMapper::insert);
         inventoryService.deductForOrder(items, order.getOrderNo(), userId);
 
-        request.cartItemIds().stream()
-                .filter(Objects::nonNull)
-                .distinct()
-                .map(cartId -> {
-                    com.freshmeal.entity.Cart cart = cartMapper.selectById(cartId);
-                    if (cart == null || !userId.equals(cart.getUserId())) {
-                        throw new BusinessException(ErrorCode.CART_ITEM_UNAVAILABLE.getCode(),
-                                ErrorCode.CART_ITEM_UNAVAILABLE.getMessage());
-                    }
-                    return cart;
-                })
-                .toList()
-                .forEach(cartMapper::deleteById);
+        if (request.cartItemIds() != null) {
+            request.cartItemIds().stream()
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .map(cartId -> {
+                        com.freshmeal.entity.Cart cart = cartMapper.selectById(cartId);
+                        if (cart == null || !userId.equals(cart.getUserId())) {
+                            throw new BusinessException(ErrorCode.CART_ITEM_UNAVAILABLE.getCode(),
+                                    ErrorCode.CART_ITEM_UNAVAILABLE.getMessage());
+                        }
+                        return cart;
+                    })
+                    .toList()
+                    .forEach(cartMapper::deleteById);
+        }
 
         OrderStatusLog log = new OrderStatusLog();
         log.setOrderId(order.getId());
@@ -952,6 +955,8 @@ public class InventoryServiceImpl implements InventoryService {
                 && (query.getStatus() < 0 || query.getStatus() > 9)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST.getCode(), "订单状态筛选值不合法");
         }
+        String orderNoFilter = StringUtils.hasText(query.getOrderNo())
+                ? query.getOrderNo().trim() : null;
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<Order> page =
                 orderMapper.selectPage(
                         new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
@@ -960,8 +965,8 @@ public class InventoryServiceImpl implements InventoryService {
                                 .eq(Order::getUserId, userId)
                                 .eq(query.getStatus() != null, Order::getStatus,
                                         query.getStatus())
-                                .like(StringUtils.hasText(query.getOrderNo()),
-                                        Order::getOrderNo, query.getOrderNo().trim())
+                                .like(orderNoFilter != null,
+                                        Order::getOrderNo, orderNoFilter)
                                 .orderByDesc(Order::getCreateTime)
                                 .orderByDesc(Order::getId));
         List<OrderVO> records = page.getRecords().stream()
@@ -1023,8 +1028,14 @@ public class InventoryServiceImpl implements InventoryService {
             orderStatusManager.transfer(order, OrderStatus.PREPARING,
                     OrderOperator.system("商家备餐完成"));
             if (order.getDeliveryType() == DELIVERY_TYPE_EXTERNAL) {
-                orderStatusManager.transfer(order, OrderStatus.WAIT_SLOT,
-                        OrderOperator.system("进入预约配送时段等待"));
+                // 预约单等待时段开始；立即配送单备餐完成即进入派单。
+                if (order.getDeliverySlotId() != null) {
+                    orderStatusManager.transfer(order, OrderStatus.WAIT_SLOT,
+                            OrderOperator.system("进入预约配送时段等待"));
+                } else {
+                    orderStatusManager.transfer(order, OrderStatus.WAIT_DELIVER,
+                            OrderOperator.system("商家备餐完成，立即配送派单"));
+                }
             }
         });
     }
@@ -1044,13 +1055,20 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     private Settlement buildSettlement(Long userId, Long addressId, int deliveryType,
-            List<Long> cartItemIds, Long userCouponId) {
+            List<Long> cartItemIds, List<DirectPurchaseItem> directItems,
+            Long userCouponId) {
         Address address = addressMapper.selectById(addressId);
         if (address == null || !userId.equals(address.getUserId())) {
             throw new BusinessException(ErrorCode.ADDRESS_NOT_FOUND.getCode(),
                     ErrorCode.ADDRESS_NOT_FOUND.getMessage());
         }
-        List<PricedCartLine> lines = cartService.priceSelected(userId, cartItemIds, true);
+        List<PricedCartLine> lines = new ArrayList<>();
+        if (cartItemIds != null && !cartItemIds.isEmpty()) {
+            lines.addAll(cartService.priceSelected(userId, cartItemIds, true));
+        }
+        if (directItems != null && !directItems.isEmpty()) {
+            lines.addAll(cartService.priceDirectPurchase(userId, directItems));
+        }
         if (lines.isEmpty()) {
             throw new BusinessException(ErrorCode.CART_ITEM_UNAVAILABLE.getCode(),
                     ErrorCode.CART_ITEM_UNAVAILABLE.getMessage());

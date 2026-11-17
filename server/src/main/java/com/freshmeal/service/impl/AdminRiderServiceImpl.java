@@ -198,7 +198,8 @@ public class AdminRiderServiceImpl implements AdminRiderService {
                 rider.getWorkStatus(),
                 rider.getMaxOrderNum(),
                 active,
-                rider.getTodayOrderCount(),
+                // 今日完成按送达时间实时统计，与骑手端 statistics 同口径。
+                (int) deliveryOrderMapper.countTodayDelivered(rider.getId()),
                 rider.getTotalOrderCount(),
                 rider.getTotalIncome(),
                 rider.getRating(),

@@ -7,6 +7,7 @@ public record RiderStatisticsVO(
         Integer totalOrderCount,
         Integer activeOrderCount,
         BigDecimal totalIncome,
+        BigDecimal todayIncome,
         BigDecimal rating,
         Integer onlineStatus,
         Integer workStatus

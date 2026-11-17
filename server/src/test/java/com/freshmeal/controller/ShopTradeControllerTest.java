@@ -226,6 +226,9 @@ class ShopTradeControllerTest {
         notifyPayment(userToken, payNo, 1);
 
         Order order = requireOrder(orderNo);
+        // 骑手提成在下单时按配送费全额写入。
+        assertThat(order.getDeliveryManFee()).isPositive();
+        assertThat(order.getDeliveryManFee()).isEqualByComparingTo(order.getFreightAmount());
         order.setPayTime(LocalDateTime.now().minusMinutes(2));
         orderMapper.updateById(order);
         orderService.advanceReadyOrders();
@@ -260,6 +263,7 @@ class ShopTradeControllerTest {
         });
 
         String riderToken = loginRider();
+        JsonNode statsBefore = readRiderStatistics(riderToken);
         mockMvc.perform(put("/api/rider/task/" + delivery.getDeliveryNo() + "/pickup")
                         .header("Authorization", riderToken))
                 .andExpect(status().isOk())
@@ -271,6 +275,34 @@ class ShopTradeControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value(4));
         assertThat(requireOrder(orderNo).getStatus()).isEqualTo(6);
+
+        // 送达后骑手收入按本单提成累加，今日口径同步增长。
+        JsonNode statsAfter = readRiderStatistics(riderToken);
+        var manFee = delivery.getManFee();
+        assertThat(manFee).isPositive();
+        assertThat(statsAfter.path("totalIncome").decimalValue())
+                .isEqualByComparingTo(statsBefore.path("totalIncome").decimalValue().add(manFee));
+        assertThat(statsAfter.path("todayIncome").decimalValue())
+                .isEqualByComparingTo(statsBefore.path("todayIncome").decimalValue().add(manFee));
+        assertThat(statsAfter.path("todayOrderCount").asInt())
+                .isEqualTo(statsBefore.path("todayOrderCount").asInt() + 1);
+
+        // 管理端骑手列表与骑手端 statistics 的今日单数同口径。
+        MvcResult adminRiders = mockMvc.perform(get("/api/admin/delivery/man")
+                        .header("Authorization", loginAdmin()))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode riderRows = objectMapper
+                .readTree(adminRiders.getResponse().getContentAsString()).path("data");
+        JsonNode adminRow = null;
+        for (JsonNode row : riderRows) {
+            if (row.path("id").asLong() == rider.getId()) {
+                adminRow = row;
+            }
+        }
+        assertThat(adminRow).isNotNull();
+        assertThat(adminRow.path("todayOrderCount").asInt())
+                .isEqualTo(statsAfter.path("todayOrderCount").asInt());
 
         mockMvc.perform(get("/api/shop/order/" + orderNo + "/trace")
                         .header("Authorization", userToken))
@@ -670,6 +702,14 @@ class ShopTradeControllerTest {
                 .path("data").path("orderNo").asText();
         createdOrderNumbers.add(orderNo);
         return orderNo;
+    }
+
+    private JsonNode readRiderStatistics(String riderToken) throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/rider/task/statistics")
+                        .header("Authorization", riderToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
     }
 
     private String initiatePayment(String token, String orderNo) throws Exception {
