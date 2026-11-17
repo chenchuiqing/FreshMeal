@@ -1,5 +1,18 @@
 import { apiClient } from '@/api/client';
+import { queryClient } from '@/plugins/query';
 import type { components } from '@/types/api/generated';
+
+/** 购物车查询键：读取方与失效方统一引用，避免键值漂移导致缓存不失效。 */
+export const cartQueryKey = ['shop', 'cart'];
+
+/**
+ * 购物车写接口成功后统一失效购物车查询。
+ * 放在接口层而非页面，保证任何页面调用这些接口都不会漏掉缓存刷新。
+ */
+async function invalidateCartQuery() {
+  // invalidateQueries 在默认配置下不会 reject，失败由各查询自行记录状态。
+  await queryClient.invalidateQueries({ queryKey: cartQueryKey });
+}
 
 export type Address = components['schemas']['Address'];
 export type AddressSaveRequest = components['schemas']['AddressSaveRequest'];
@@ -74,29 +87,40 @@ export function getCart(signal?: AbortSignal): Promise<CartSummary> {
   return apiClient.get<CartSummary>('/shop/cart', { signal });
 }
 
-export function addCartItem(
+export async function addCartItem(
   params: CartItemAddRequest,
   signal?: AbortSignal,
 ): Promise<CartLine> {
-  return apiClient.post<CartLine, CartItemAddRequest>('/shop/cart', params, {
-    signal,
-  });
+  const line = await apiClient.post<CartLine, CartItemAddRequest>(
+    '/shop/cart',
+    params,
+    { signal },
+  );
+  await invalidateCartQuery();
+  return line;
 }
 
-export function updateCartItem(
+export async function updateCartItem(
   id: number,
   params: CartItemUpdateRequest,
   signal?: AbortSignal,
 ): Promise<CartLine> {
-  return apiClient.put<CartLine, CartItemUpdateRequest>(
+  const line = await apiClient.put<CartLine, CartItemUpdateRequest>(
     `/shop/cart/${id}`,
     params,
     { signal },
   );
+  await invalidateCartQuery();
+  return line;
 }
 
-export function deleteCartItem(id: number, signal?: AbortSignal): Promise<null> {
-  return apiClient.delete<null>(`/shop/cart/${id}`, { signal });
+export async function deleteCartItem(
+  id: number,
+  signal?: AbortSignal,
+): Promise<null> {
+  const result = await apiClient.delete<null>(`/shop/cart/${id}`, { signal });
+  await invalidateCartQuery();
+  return result;
 }
 
 export function settleCart(
@@ -110,13 +134,20 @@ export function settleCart(
   );
 }
 
-export function createOrder(
+export async function createOrder(
   params: OrderCreateRequest,
   signal?: AbortSignal,
 ): Promise<Order> {
-  return apiClient.post<Order, OrderCreateRequest>('/shop/order', params, {
-    signal,
-  });
+  const order = await apiClient.post<Order, OrderCreateRequest>(
+    '/shop/order',
+    params,
+    { signal },
+  );
+  // 购物车下单会删除对应购物车行；直购模式不触及购物车，无需失效。
+  if (params.cartItemIds?.length) {
+    await invalidateCartQuery();
+  }
+  return order;
 }
 
 export function getOrders(
@@ -153,11 +184,16 @@ export function getOrderDeliveryTrace(
   });
 }
 
-export function cancelOrder(
+export async function cancelOrder(
   orderNo: string,
   signal?: AbortSignal,
 ): Promise<null> {
-  return apiClient.delete<null>(`/shop/order/${orderNo}`, { signal });
+  const result = await apiClient.delete<null>(`/shop/order/${orderNo}`, {
+    signal,
+  });
+  // 取消订单恢复库存，购物车行的可购状态随之变化。
+  await invalidateCartQuery();
+  return result;
 }
 
 export function initiatePayment(

@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/api/modules/trade', () => ({
+  cartQueryKey: ['shop', 'cart'],
   settleCart: mocks.settleCart,
   createOrder: mocks.createOrder,
   getCart: mocks.getCart,

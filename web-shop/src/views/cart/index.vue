@@ -213,8 +213,9 @@
 </template>
 
 <script setup lang="ts">
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useMutation, useQuery } from '@tanstack/vue-query';
 import {
+  cartQueryKey,
   deleteCartItem,
   getCart,
   updateCartItem,
@@ -239,7 +240,6 @@ interface EditorGroup {
 type CartRow = CartLine & { id: number };
 
 const router = useRouter();
-const queryClient = useQueryClient();
 const editorVisible = ref(false);
 const editorSaving = ref(false);
 const selectedLineId = ref<number | null>(null);
@@ -254,7 +254,7 @@ const {
   error,
   refetch,
 } = useQuery({
-  queryKey: ['shop', 'cart'],
+  queryKey: cartQueryKey,
   queryFn: ({ signal }) => getCart(signal),
 });
 
@@ -363,9 +363,8 @@ watch(
   { immediate: true },
 );
 
-const invalidateCart = () =>
-  queryClient.invalidateQueries({ queryKey: ['shop', 'cart'] });
-
+// 写接口（addCartItem/updateCartItem/deleteCartItem）在 trade 模块内统一失效 cartQueryKey，
+// 页面层无需重复 invalidate。
 const cartMutation = useMutation({
   mutationFn: ({
     id,
@@ -374,7 +373,6 @@ const cartMutation = useMutation({
     id: number;
     body: Parameters<typeof updateCartItem>[1];
   }) => updateCartItem(id, body),
-  onSuccess: invalidateCart,
   onError: (error) => showToast(messageOf(error, '购物车更新失败')),
 });
 
@@ -415,7 +413,6 @@ async function saveEditor() {
       specId: editorSpecId.value,
       optionItemIds: optionIds,
     });
-    await invalidateCart();
     editorVisible.value = false;
     showToast({ message: '规格已更新', icon: 'success' });
   } catch (error) {
@@ -433,7 +430,6 @@ function confirmDelete(item: CartRow) {
   }).then(async () => {
     try {
       await deleteCartItem(item.id);
-      await invalidateCart();
       showToast({ message: '已删除', icon: 'success' });
     } catch (error) {
       showToast(messageOf(error, '删除失败'));

@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   recordBrowsingHistory: vi.fn(),
   toggleFavorite: vi.fn(),
   addCartItem: vi.fn(),
+  invalidateQueries: vi.fn(),
   showToast: vi.fn(),
   queryState: {
     detail: null as unknown,
@@ -52,7 +53,7 @@ vi.mock('@tanstack/vue-query', () => ({
     };
   },
   useQueryClient: () => ({
-    invalidateQueries: vi.fn(),
+    invalidateQueries: mocks.invalidateQueries,
   }),
 }));
 
@@ -189,6 +190,19 @@ beforeEach(() => {
   mocks.getFavoriteIds.mockResolvedValue([]);
   mocks.recordBrowsingHistory.mockResolvedValue(null);
   mocks.addCartItem.mockResolvedValue({ id: 1 });
+  mocks.invalidateQueries.mockResolvedValue(undefined);
+});
+
+describe('product detail add to cart action', () => {
+  it('submits the selected item to the cart write API', async () => {
+    const { wrapper } = await mountDetail();
+
+    await findButton(wrapper, '加入购物车').trigger('click');
+    await flushPromises();
+
+    // 缓存失效统一由 trade 模块写接口负责，页面只调用写接口（见 tests/api/trade.test.ts）。
+    expect(mocks.addCartItem).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('product detail buy now action', () => {

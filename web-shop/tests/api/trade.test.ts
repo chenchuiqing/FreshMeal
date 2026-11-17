@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addCartItem,
   cancelOrder,
+  cartQueryKey,
   createAddress,
   createOrder,
   deleteCartItem,
@@ -23,11 +24,18 @@ const transport = vi.hoisted(() => ({
 }));
 vi.mock('@/api/client', () => ({ apiClient: transport }));
 
+const queryClient = vi.hoisted(() => ({
+  invalidateQueries: vi.fn(),
+}));
+vi.mock('@/plugins/query', () => ({ queryClient }));
+
 beforeEach(() => {
   transport.get.mockReset();
   transport.post.mockReset();
   transport.put.mockReset();
   transport.delete.mockReset();
+  queryClient.invalidateQueries.mockReset();
+  queryClient.invalidateQueries.mockResolvedValue(undefined);
 });
 
 describe('shop trade API module', () => {
@@ -148,5 +156,78 @@ describe('shop trade API module', () => {
       { payNo: 'PAY123', payType: 1, success: true },
       { signal },
     );
+  });
+
+  describe('cart cache invalidation', () => {
+    const add = { productId: 101, specId: 1001, optionItemIds: [], quantity: 1 };
+
+    it('invalidates the cart query after each cart write succeeds', async () => {
+      transport.post.mockResolvedValue(null);
+      transport.put.mockResolvedValue(null);
+      transport.delete.mockResolvedValue(null);
+
+      await addCartItem(add);
+      await updateCartItem(7, { quantity: 2 });
+      await deleteCartItem(7);
+
+      expect(queryClient.invalidateQueries).toHaveBeenCalledTimes(3);
+      for (const call of queryClient.invalidateQueries.mock.calls) {
+        expect(call[0]).toEqual({ queryKey: cartQueryKey });
+      }
+    });
+
+    it('leaves the cart query untouched when a cart write fails', async () => {
+      transport.put.mockRejectedValue(new Error('conflict'));
+
+      await expect(updateCartItem(7, { quantity: 2 })).rejects.toThrow(
+        'conflict',
+      );
+
+      expect(queryClient.invalidateQueries).not.toHaveBeenCalled();
+    });
+
+    it('invalidates the cart query after a cart checkout succeeds', async () => {
+      transport.post.mockResolvedValue(null);
+
+      await createOrder({ addressId: 1, deliveryType: 1, cartItemIds: [7] });
+
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: cartQueryKey,
+      });
+    });
+
+    it('skips cart invalidation for direct purchase orders', async () => {
+      transport.post.mockResolvedValue(null);
+
+      await createOrder({
+        addressId: 1,
+        deliveryType: 1,
+        directItems: [
+          { productId: 101, specId: 1001, optionItemIds: [], quantity: 1 },
+        ],
+      });
+
+      expect(queryClient.invalidateQueries).not.toHaveBeenCalled();
+    });
+
+    it('invalidates the cart query after an order is cancelled', async () => {
+      transport.delete.mockResolvedValue(null);
+
+      await cancelOrder('FM123');
+
+      expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+        queryKey: cartQueryKey,
+      });
+    });
+
+    it('never invalidates the cart query from read-only calls', async () => {
+      transport.get.mockResolvedValue(null);
+      transport.post.mockResolvedValue(null);
+
+      await getCart();
+      await settleCart({ addressId: 1, deliveryType: 1, cartItemIds: [7] });
+
+      expect(queryClient.invalidateQueries).not.toHaveBeenCalled();
+    });
   });
 });

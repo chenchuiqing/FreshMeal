@@ -256,6 +256,7 @@
 <script setup lang="ts">
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import {
+  cartQueryKey,
   createOrder,
   getAvailableDeliverySlots,
   getCart,
@@ -403,7 +404,7 @@ const {
   isError: cartFailed,
   error: cartQueryError,
 } = useQuery({
-  queryKey: ['shop', 'cart'],
+  queryKey: cartQueryKey,
   queryFn: ({ signal }) => getCart(signal),
   enabled: computed(() => !isDirectMode.value),
 });
@@ -537,19 +538,18 @@ async function submitOrder() {
       userCouponId: selectedUserCouponId.value ?? undefined,
     });
     checkoutStore.clearDirectDraft();
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['shop', 'cart'] }),
-      queryClient.invalidateQueries({ queryKey: ['shop', 'orders'] }),
-    ]);
+    // 购物车失效已在 createOrder 内部完成，这里只刷新订单列表。
+    await queryClient.invalidateQueries({ queryKey: ['shop', 'orders'] });
     await router.replace(`/pay/${order.orderNo}`);
   } catch (error) {
     showToast(
       isApiError(error) ? error.message : '提交订单失败，请稍后重试',
     );
     if (isApiError(error) && error.status === 409) {
+      // 409 表示购物车行状态已变化，createOrder 未成功故未失效，这里补刷。
       await Promise.all([
         refetchSettle(),
-        queryClient.invalidateQueries({ queryKey: ['shop', 'cart'] }),
+        queryClient.invalidateQueries({ queryKey: cartQueryKey }),
       ]);
     }
   } finally {

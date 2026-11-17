@@ -465,7 +465,6 @@ async function cancelCurrentOrder() {
       queryKey: ['shop', 'order', orderNo],
     });
     await queryClient.invalidateQueries({ queryKey: ['shop', 'orders'] });
-    await queryClient.invalidateQueries({ queryKey: ['shop', 'cart'] });
     showToast({ message: '订单已取消', icon: 'success' });
   } catch (error) {
     showToast(isApiError(error) ? error.message : '取消订单失败');
