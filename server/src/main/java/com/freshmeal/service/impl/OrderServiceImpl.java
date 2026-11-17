@@ -258,8 +258,14 @@ public class OrderServiceImpl implements OrderService {
             orderStatusManager.transfer(order, OrderStatus.PREPARING,
                     OrderOperator.system("商家备餐完成"));
             if (order.getDeliveryType() == DELIVERY_TYPE_EXTERNAL) {
-                orderStatusManager.transfer(order, OrderStatus.WAIT_SLOT,
-                        OrderOperator.system("进入预约配送时段等待"));
+                // 预约单等待时段开始；立即配送单备餐完成即进入派单。
+                if (order.getDeliverySlotId() != null) {
+                    orderStatusManager.transfer(order, OrderStatus.WAIT_SLOT,
+                            OrderOperator.system("进入预约配送时段等待"));
+                } else {
+                    orderStatusManager.transfer(order, OrderStatus.WAIT_DELIVER,
+                            OrderOperator.system("商家备餐完成，立即配送派单"));
+                }
             }
         });
     }
@@ -467,11 +473,11 @@ public class OrderServiceImpl implements OrderService {
             }
             return null;
         }
-        if (slotId == null || slotDate == null) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST.getCode(),
-                    "请选择配送日期与时段");
+        // 外卖配送：两个字段均为空表示立即配送，成对传入表示预约配送。
+        if (slotId == null && slotDate == null) {
+            return null;
         }
-        if (slotId == null && slotDate != null || slotId != null && slotDate == null) {
+        if (slotId == null || slotDate == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST.getCode(), "预约配送时段不完整");
         }
         return deliverySlotService.validateAndSnapshot(slotId, slotDate);

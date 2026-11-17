@@ -176,7 +176,11 @@ const SETTLE = {
   totalCalories: 430,
 };
 
-async function mountCheckout(direct: boolean) {
+const DEFAULT_SLOTS = [
+  { id: 1, date: '2099-01-01', name: '午间', remainingCapacity: 10 },
+];
+
+async function mountCheckout(direct: boolean, slots = DEFAULT_SLOTS) {
   const pinia = createPinia();
   setActivePinia(pinia);
   useUserStore(pinia).setSession({
@@ -203,9 +207,7 @@ async function mountCheckout(direct: boolean) {
   mocks.queryState.settleFailed = false;
   mocks.queryState.settleError = ref(null);
   mocks.queryState.addresses = ref([ADDRESS]);
-  mocks.queryState.slots = ref([
-    { id: 1, date: '2099-01-01', name: '午间', remainingCapacity: 10 },
-  ]);
+  mocks.queryState.slots = ref(slots);
   mocks.queryState.coupons = ref([]);
   mocks.queryState.cart = ref({
     items: [],
@@ -326,6 +328,80 @@ describe('checkout direct purchase mode', () => {
     expect(mocks.settleCart).not.toHaveBeenCalledWith(
       expect.objectContaining({ directItems: expect.anything() }),
       expect.anything(),
+    );
+  });
+});
+
+describe('checkout delivery time', () => {
+  type CheckoutMount = Awaited<ReturnType<typeof mountCheckout>>;
+
+  function findSubmitButton(wrapper: CheckoutMount['wrapper']) {
+    const button = wrapper
+      .findAll('button')
+      .find((item) => item.text() === '提交订单');
+    if (!button) throw new Error('submit action not found');
+    return button;
+  }
+
+  it('defaults to the instant delivery option', async () => {
+    const { wrapper } = await mountCheckout(false);
+
+    const instantCard = wrapper
+      .findAll('.slot-option')
+      .find((card) => card.text().includes('立即配送'));
+    expect(instantCard).toBeTruthy();
+    expect(instantCard?.classes()).toContain('slot-option--selected');
+  });
+
+  it('submits without slot fields when instant delivery stays selected', async () => {
+    const { wrapper } = await mountCheckout(false);
+
+    await findSubmitButton(wrapper).trigger('click');
+    await flushPromises();
+
+    expect(mocks.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deliveryType: 1,
+        deliverySlotId: undefined,
+        deliverySlotDate: undefined,
+      }),
+    );
+  });
+
+  it('submits the reservation slot after switching away from instant', async () => {
+    const { wrapper } = await mountCheckout(false);
+
+    const slotCard = wrapper
+      .findAll('.slot-option')
+      .find((card) => card.text().includes('午间'));
+    if (!slotCard) throw new Error('slot card not found');
+    await slotCard.trigger('click');
+    expect(slotCard.classes()).toContain('slot-option--selected');
+
+    await findSubmitButton(wrapper).trigger('click');
+    await flushPromises();
+
+    expect(mocks.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deliverySlotId: 1,
+        deliverySlotDate: '2099-01-01',
+      }),
+    );
+  });
+
+  it('keeps instant delivery selectable when no slots are available', async () => {
+    const { wrapper } = await mountCheckout(false, []);
+
+    expect(wrapper.text()).toContain('暂无可预约时段，可选择立即配送。');
+
+    await findSubmitButton(wrapper).trigger('click');
+    await flushPromises();
+
+    expect(mocks.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deliverySlotId: undefined,
+        deliverySlotDate: undefined,
+      }),
     );
   });
 });

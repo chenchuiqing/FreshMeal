@@ -332,9 +332,12 @@ onMounted(loadPage);
             </el-descriptions-item>
             <el-descriptions-item label="配送时段">
               {{
-                detail.order.deliverySlotDate
-                  ? `${detail.order.deliverySlotDate} ${detail.order.deliverySlotName}`
-                  : "未预约"
+                detail.order.deliveryType === 1 &&
+                !detail.order.deliverySlotDate
+                  ? "立即配送"
+                  : detail.order.deliverySlotDate
+                    ? `${detail.order.deliverySlotDate} ${detail.order.deliverySlotName}`
+                    : "未预约"
               }}
             </el-descriptions-item>
             <el-descriptions-item label="收货地址" :span="3">

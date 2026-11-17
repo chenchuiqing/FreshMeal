@@ -96,8 +96,37 @@
 
     <section v-if="deliveryType === 1" class="checkout-section surface-card">
       <div class="section-title">
-        <h2>预约时段</h2>
-        <span>{{ slots?.length ?? 0 }} 个可选</span>
+        <h2>配送时间</h2>
+        <span>{{ slots?.length ?? 0 }} 个时段可预约</span>
+      </div>
+      <div class="slot-list">
+        <button
+          type="button"
+          class="slot-option"
+          :class="{ 'slot-option--selected': isInstantSelected }"
+          @click="selectedSlotKey = INSTANT_SLOT_KEY"
+        >
+          <strong>立即配送</strong>
+          <span>今日尽快送达</span>
+          <small>无需预约时段</small>
+        </button>
+        <template v-if="!slotsLoading && !slotsFailed">
+          <button
+            v-for="slot in slots"
+            :key="slotKey(slot)"
+            type="button"
+            class="slot-option"
+            :class="{ 'slot-option--selected': selectedSlotKey === slotKey(slot) }"
+            @click="selectedSlotKey = slotKey(slot)"
+          >
+            <strong>{{ slot.name }}</strong>
+            <span>{{ formatDate(slot.date) }}</span>
+            <small v-if="slot.remainingCapacity != null">
+              余 {{ slot.remainingCapacity }} 单
+            </small>
+            <small v-else>仍有名额</small>
+          </button>
+        </template>
       </div>
       <div v-if="slotsLoading" class="state-panel">
         <van-loading vertical>正在查询可预约时段…</van-loading>
@@ -109,24 +138,7 @@
         </van-button>
       </div>
       <div v-else-if="!slots?.length" class="inline-state">
-        <p>当前没有可预约的配送时段，请稍后再试。</p>
-      </div>
-      <div v-else class="slot-list">
-        <button
-          v-for="slot in slots"
-          :key="slotKey(slot)"
-          type="button"
-          class="slot-option"
-          :class="{ 'slot-option--selected': selectedSlotKey === slotKey(slot) }"
-          @click="selectedSlotKey = slotKey(slot)"
-        >
-          <strong>{{ slot.name }}</strong>
-          <span>{{ formatDate(slot.date) }}</span>
-          <small v-if="slot.remainingCapacity != null">
-            余 {{ slot.remainingCapacity }} 单
-          </small>
-          <small v-else>仍有名额</small>
-        </button>
+        <p>暂无可预约时段，可选择立即配送。</p>
       </div>
     </section>
 
@@ -216,11 +228,7 @@
         type="primary"
         size="large"
         :loading="submitting"
-        :disabled="
-          !settle ||
-          submitting ||
-          (deliveryType === 1 && !selectedSlot)
-        "
+        :disabled="!settle || submitting || slotSelectionInvalid"
         loading-text="提交中…"
         @click="submitOrder"
       >
@@ -271,6 +279,9 @@ import { formatPrice } from '@/utils/product';
 
 defineOptions({ name: 'CheckoutPage' });
 
+/** 立即配送选项的选中键，区别于预约时段的 `${id}-${date}`。 */
+const INSTANT_SLOT_KEY = 'instant';
+
 const router = useRouter();
 const route = useRoute();
 const queryClient = useQueryClient();
@@ -280,7 +291,7 @@ const selectedAddressId = ref<number | null>(null);
 const addressPopup = ref(false);
 const remark = ref('');
 const submitting = ref(false);
-const selectedSlotKey = ref<string | null>(null);
+const selectedSlotKey = ref<string | null>(INSTANT_SLOT_KEY);
 const selectedUserCouponId = ref<number | null>(null);
 
 /** 立即购买模式：结算只包含草稿商品，不读取购物车勾选项。 */
@@ -366,37 +377,42 @@ const slotsErrorText = computed(() =>
     : '配送时段加载失败',
 );
 
-const selectedSlot = computed(() =>
-  slots.value?.find(
-    (slot) => selectedSlotKey.value === `${slot.id}-${slot.date}`,
-  ),
+const isInstantSelected = computed(
+  () => selectedSlotKey.value === INSTANT_SLOT_KEY,
 );
 
+const selectedSlot = computed(() =>
+  isInstantSelected.value
+    ? undefined
+    : slots.value?.find(
+        (slot) => selectedSlotKey.value === `${slot.id}-${slot.date}`,
+      ),
+);
+
+/** 外卖配送时，选中的预约时段必须仍有效，否则不允许提交。 */
+const slotSelectionInvalid = computed(
+  () =>
+    deliveryType.value === 1 &&
+    !isInstantSelected.value &&
+    selectedSlot.value === undefined,
+);
+
+// 切换配送方式或预约时段失效（已过期、被占满）时，回退到立即配送。
 watch(
-  slots,
-  (items) => {
-    if (deliveryType.value !== 1 || !items?.length) return;
-    const exists = items.some(
+  [slots, deliveryType],
+  ([items, type]) => {
+    if (type !== 1) {
+      selectedSlotKey.value = null;
+      return;
+    }
+    if (selectedSlotKey.value === INSTANT_SLOT_KEY) return;
+    const exists = items?.some(
       (slot) => selectedSlotKey.value === `${slot.id}-${slot.date}`,
     );
-    const [firstSlot] = items;
-    if (!exists && firstSlot) {
-      selectedSlotKey.value = `${firstSlot.id}-${firstSlot.date}`;
-    }
+    if (!exists) selectedSlotKey.value = INSTANT_SLOT_KEY;
   },
   { immediate: true },
 );
-
-watch(deliveryType, (value) => {
-  if (value === 2) {
-    selectedSlotKey.value = null;
-    return;
-  }
-  const [firstSlot] = slots.value ?? [];
-  if (firstSlot && selectedSlotKey.value === null) {
-    selectedSlotKey.value = `${firstSlot.id}-${firstSlot.date}`;
-  }
-});
 
 const {
   data: cart,
@@ -514,14 +530,9 @@ function selectAddress(value: unknown) {
 
 async function submitOrder() {
   const address = currentAddress.value;
-  if (
-    !address ||
-    !settle.value ||
-    submitting.value ||
-    (deliveryType.value === 1 && !selectedSlot.value)
-  ) {
-    if (deliveryType.value === 1 && !selectedSlot.value) {
-      showToast('请选择可用的配送日期与时段');
+  if (!address || !settle.value || submitting.value || slotSelectionInvalid.value) {
+    if (slotSelectionInvalid.value) {
+      showToast('所选配送时段已失效，请重新选择');
     }
     return;
   }

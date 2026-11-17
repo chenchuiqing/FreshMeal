@@ -283,6 +283,85 @@ class ShopTradeControllerTest {
     }
 
     @Test
+    void instantDeliveryOrderSkipsSlotAndActivatesAfterPreparation()
+            throws Exception {
+        String userToken = login();
+        // 固定骑手离线，配送任务停留在待分配态，断言不依赖派单结果。
+        DeliveryMan rider = deliveryManMapper.selectOne(
+                Wrappers.<DeliveryMan>lambdaQuery()
+                        .eq(DeliveryMan::getUsername, "rider01"));
+        assertThat(rider).isNotNull();
+        originalRider = copyRider(rider);
+        rider.setOnlineStatus(0);
+        rider.setWorkStatus(2);
+        deliveryManMapper.updateById(rider);
+
+        long cartId = addItem(userToken, 1, List.of());
+        long addressId = readFirstAddressId(userToken);
+
+        MvcResult result = mockMvc.perform(post("/api/shop/order")
+                        .header("Authorization", userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"addressId":%d,"deliveryType":1,"cartItemIds":[%d]}
+                                """.formatted(addressId, cartId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andReturn();
+        String orderNo = objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("data").path("orderNo").asText();
+        createdOrderNumbers.add(orderNo);
+
+        Order order = requireOrder(orderNo);
+        assertThat(order.getDeliverySlotId()).isNull();
+        assertThat(order.getDeliverySlotDate()).isNull();
+
+        String payNo = initiatePayment(userToken, orderNo);
+        notifyPayment(userToken, payNo, 1);
+
+        order = requireOrder(orderNo);
+        order.setPayTime(LocalDateTime.now().minusMinutes(2));
+        orderMapper.updateById(order);
+        orderService.advanceReadyOrders();
+        // 立即配送单备餐完成直接进入待配送，不经过等待预约时段。
+        assertThat(requireOrder(orderNo).getStatus()).isEqualTo(4);
+
+        DeliveryOrder delivery = deliveryOrderMapper.selectOne(
+                Wrappers.<DeliveryOrder>lambdaQuery()
+                        .eq(DeliveryOrder::getOrderId, requireOrder(orderNo).getId()));
+        assertThat(delivery).isNotNull();
+        assertThat(delivery.getStatus()).isZero();
+    }
+
+    @Test
+    void partialDeliverySlotFieldsAreRejected() throws Exception {
+        String userToken = login();
+        long cartId = addItem(userToken, 1, List.of());
+        long addressId = readFirstAddressId(userToken);
+        var slot = deliverySlotService.listAvailable().get(0);
+
+        mockMvc.perform(post("/api/shop/order")
+                        .header("Authorization", userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"addressId":%d,"deliveryType":1,"cartItemIds":[%d],
+                                 "deliverySlotId":%d}
+                                """.formatted(addressId, cartId, slot.id())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(40000));
+
+        mockMvc.perform(post("/api/shop/order")
+                        .header("Authorization", userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"addressId":%d,"deliveryType":1,"cartItemIds":[%d],
+                                 "deliverySlotDate":"%s"}
+                                """.formatted(addressId, cartId, slot.date())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(40000));
+    }
+
+    @Test
     void adminCanManuallyAssignUnclaimedDelivery() throws Exception {
         DeliveryScenario scenario = createUnassignedDelivery();
         String riderToken = loginRider();
