@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.freshmeal.entity.BrowsingHistory;
+import com.freshmeal.entity.Coupon;
 import com.freshmeal.entity.Favorite;
 import com.freshmeal.entity.Order;
 import com.freshmeal.entity.OrderItem;
@@ -125,23 +126,64 @@ class ExtensionFeaturesControllerTest {
     @Test
     void couponFavoriteHistoryAndContentEndpointsWork() throws Exception {
         String userToken = login();
+        String adminToken = loginAdmin();
+
+        // A dedicated template keeps this case independent of the seeded coupons.
+        MvcResult couponResult = mockMvc.perform(post("/api/admin/coupon")
+                        .header("Authorization", adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"自动化领取券","type":1,"threshold":50,
+                                 "amount":5,"startTime":"2026-01-01T00:00:00",
+                                 "endTime":"2030-01-01T00:00:00","totalCount":10}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        long couponId = objectMapper.readTree(
+                couponResult.getResponse().getContentAsString())
+                .path("data").asLong();
+        createdCouponIds.add(couponId);
 
         mockMvc.perform(get("/api/shop/coupon/available")
                         .header("Authorization", userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data[0].name").exists());
+                .andExpect(jsonPath("$.data[?(@.id == " + couponId + ")]").exists());
 
-        MvcResult receiveResult = mockMvc.perform(post("/api/shop/coupon/1/receive")
-                        .header("Authorization", userToken))
+        MvcResult receiveResult = mockMvc.perform(
+                        post("/api/shop/coupon/" + couponId + "/receive")
+                                .header("Authorization", userToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.couponId").value(1))
+                .andExpect(jsonPath("$.data.couponId").value((int) couponId))
                 .andReturn();
         long userCouponId = objectMapper.readTree(
                         receiveResult.getResponse().getContentAsString())
                 .path("data").path("id").asLong();
         createdUserCouponIds.add(userCouponId);
 
+        // Each template can be claimed at most once per user.
+        mockMvc.perform(post("/api/shop/coupon/" + couponId + "/receive")
+                        .header("Authorization", userToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value(40908));
+
+        // A claimed template drops out of the list the user can still claim.
+        mockMvc.perform(get("/api/shop/coupon/available")
+                        .header("Authorization", userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[?(@.id == " + couponId + ")]").doesNotExist());
+
+        // A sold-out template is not claimable either.
+        Coupon soldOut = couponMapper.selectById(couponId);
+        couponMapper.update(null, Wrappers.<Coupon>lambdaUpdate()
+                .eq(Coupon::getId, couponId)
+                .set(Coupon::getReceivedCount, soldOut.getTotalCount()));
+        mockMvc.perform(get("/api/shop/coupon/available")
+                        .header("Authorization", userToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[?(@.id == " + couponId + ")]").doesNotExist());
+
+        // A coupon already in the wallet stays usable after the template sold out.
         assertThat(couponService.calculateDiscount(
                 1L, userCouponId, new BigDecimal("56.00")))
                 .isEqualByComparingTo("5.00");

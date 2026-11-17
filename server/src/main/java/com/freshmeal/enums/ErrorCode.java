@@ -20,6 +20,7 @@ public enum ErrorCode {
     ORDER_STATE_INVALID(40904, "订单当前状态不允许该操作"),
     PAYMENT_EXPIRED(40905, "支付已超时"),
     COUPON_UNAVAILABLE(40906, "优惠券不可用"),
+    COUPON_ALREADY_RECEIVED(40908, "该优惠券您已领取过"),
     REFUND_STATE_INVALID(40907, "退款申请状态不合法"),
     INVALID_OPTION(40006, "商品选项不合法"),
     UNAUTHORIZED(40101, "未认证或登录状态已失效"),

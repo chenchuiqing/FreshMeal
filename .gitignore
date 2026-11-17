@@ -22,3 +22,6 @@ release/
 test-results/
 *.jtl
 jmeter.log
+
+# Local database backups
+.backup/

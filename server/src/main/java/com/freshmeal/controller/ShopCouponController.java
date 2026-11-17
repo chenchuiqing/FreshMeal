@@ -25,7 +25,7 @@ public class ShopCouponController {
 
     @GetMapping("/available")
     public Result<List<CouponVO>> available() {
-        return Result.ok(couponService.listAvailable());
+        return Result.ok(couponService.listAvailable(ShopLoginContext.currentUserId()));
     }
 
     @GetMapping("/list")

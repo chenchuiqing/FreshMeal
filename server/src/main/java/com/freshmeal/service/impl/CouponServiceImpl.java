@@ -17,7 +17,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,15 +39,26 @@ public class CouponServiceImpl implements CouponService {
     private final UserCouponMapper userCouponMapper;
 
     @Override
-    public List<CouponVO> listAvailable() {
+    public List<CouponVO> listAvailable(Long userId) {
         LocalDateTime now = LocalDateTime.now();
-        return couponMapper.selectList(Wrappers.<Coupon>lambdaQuery()
-                        .eq(Coupon::getStatus, COUPON_ACTIVE)
-                        .le(Coupon::getStartTime, now)
-                        .ge(Coupon::getEndTime, now)
-                        .orderByAsc(Coupon::getThreshold)
-                        .orderByDesc(Coupon::getId))
+        List<Coupon> coupons = couponMapper.selectList(Wrappers.<Coupon>lambdaQuery()
+                .eq(Coupon::getStatus, COUPON_ACTIVE)
+                .le(Coupon::getStartTime, now)
+                .ge(Coupon::getEndTime, now)
+                .orderByAsc(Coupon::getThreshold)
+                .orderByDesc(Coupon::getId));
+        if (coupons.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> receivedCouponIds = userCouponMapper.selectList(
+                        Wrappers.<UserCoupon>lambdaQuery()
+                                .eq(UserCoupon::getUserId, userId))
                 .stream()
+                .map(UserCoupon::getCouponId)
+                .collect(Collectors.toSet());
+        return coupons.stream()
+                .filter(coupon -> coupon.getReceivedCount() < coupon.getTotalCount())
+                .filter(coupon -> !receivedCouponIds.contains(coupon.getId()))
                 .map(coupon -> new CouponVO(
                         coupon.getId(),
                         coupon.getName(),
@@ -81,6 +95,7 @@ public class CouponServiceImpl implements CouponService {
     public UserCouponVO receive(Long userId, Long couponId) {
         Coupon coupon = couponMapper.selectById(couponId);
         validateActiveCoupon(coupon);
+        validateNotReceived(userId, couponId);
         int updated = couponMapper.update(null,
                 Wrappers.<Coupon>lambdaUpdate()
                         .eq(Coupon::getId, couponId)
@@ -91,14 +106,7 @@ public class CouponServiceImpl implements CouponService {
             throw new BusinessException(ErrorCode.COUPON_UNAVAILABLE.getCode(),
                     "优惠券已领完或已停用");
         }
-        UserCoupon userCoupon = new UserCoupon();
-        userCoupon.setUserId(userId);
-        userCoupon.setCouponId(couponId);
-        userCoupon.setStatus(USER_COUPON_UNUSED);
-        userCoupon.setReceiveTime(LocalDateTime.now());
-        userCoupon.setExpireTime(coupon.getEndTime());
-        userCouponMapper.insert(userCoupon);
-        return toVo(userCoupon, coupon);
+        return insertUserCoupon(userId, coupon);
     }
 
     @Override
@@ -109,7 +117,7 @@ public class CouponServiceImpl implements CouponService {
         }
         UserCoupon userCoupon = requireUserCoupon(userId, userCouponId);
         Coupon coupon = requireCoupon(userCoupon.getCouponId());
-        validateActiveCoupon(coupon);
+        validateUsableCoupon(coupon);
         if (userCoupon.getStatus() != USER_COUPON_UNUSED
                 || userCoupon.getExpireTime().isBefore(LocalDateTime.now())) {
             throw new BusinessException(ErrorCode.COUPON_UNAVAILABLE.getCode(),
@@ -279,6 +287,51 @@ public class CouponServiceImpl implements CouponService {
             throw new BusinessException(ErrorCode.COUPON_UNAVAILABLE.getCode(),
                     "优惠券当前不可领取");
         }
+    }
+
+    /** A coupon already in the user's wallet stays usable even once the
+     *  template is sold out, so stock is not part of this check. */
+    private void validateUsableCoupon(Coupon coupon) {
+        if (coupon == null) {
+            throw new BusinessException(ErrorCode.COUPON_NOT_FOUND.getCode(),
+                    ErrorCode.COUPON_NOT_FOUND.getMessage());
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (coupon.getStatus() != COUPON_ACTIVE
+                || coupon.getStartTime().isAfter(now)
+                || coupon.getEndTime().isBefore(now)) {
+            throw new BusinessException(ErrorCode.COUPON_UNAVAILABLE.getCode(),
+                    "优惠券当前不可使用");
+        }
+    }
+
+    private void validateNotReceived(Long userId, Long couponId) {
+        Long claimed = userCouponMapper.selectCount(
+                Wrappers.<UserCoupon>lambdaQuery()
+                        .eq(UserCoupon::getUserId, userId)
+                        .eq(UserCoupon::getCouponId, couponId));
+        if (claimed != null && claimed > 0) {
+            throw new BusinessException(ErrorCode.COUPON_ALREADY_RECEIVED.getCode(),
+                    ErrorCode.COUPON_ALREADY_RECEIVED.getMessage());
+        }
+    }
+
+    private UserCouponVO insertUserCoupon(Long userId, Coupon coupon) {
+        UserCoupon userCoupon = new UserCoupon();
+        userCoupon.setUserId(userId);
+        userCoupon.setCouponId(coupon.getId());
+        userCoupon.setStatus(USER_COUPON_UNUSED);
+        userCoupon.setReceiveTime(LocalDateTime.now());
+        userCoupon.setExpireTime(coupon.getEndTime());
+        try {
+            userCouponMapper.insert(userCoupon);
+        } catch (DuplicateKeyException exception) {
+            // Concurrent claims for the same template: the unique key is the
+            // final guard, so report it as a normal business rejection.
+            throw new BusinessException(ErrorCode.COUPON_ALREADY_RECEIVED.getCode(),
+                    ErrorCode.COUPON_ALREADY_RECEIVED.getMessage());
+        }
+        return toVo(userCoupon, coupon);
     }
 
     private UserCoupon requireUserCoupon(Long userId, Long userCouponId) {

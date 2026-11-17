@@ -10,8 +10,10 @@ import com.freshmeal.entity.Order;
 import com.freshmeal.mapper.DeliverySlotMapper;
 import com.freshmeal.mapper.OrderMapper;
 import com.freshmeal.service.impl.DeliverySlotServiceImpl;
+import com.freshmeal.vo.user.DeliverySlotVO;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -56,6 +58,9 @@ class DeliverySlotServiceImplTest {
 
     @Test
     void availableSlotsExposeRemainingCapacity() {
+        // advanceDays is 1, so the slot is offered for today and tomorrow.
+        // Only the tomorrow copy is asserted on, since today's copy depends
+        // on the wall clock and the order deadline.
         DeliverySlot slot = slot(3L, LocalDate.now().plusDays(1),
                 LocalTime.NOON, 5);
         when(deliverySlotMapper.selectList(
@@ -65,12 +70,13 @@ class DeliverySlotServiceImplTest {
         DeliverySlotServiceImpl service =
                 new DeliverySlotServiceImpl(deliverySlotMapper, orderMapper);
 
-        assertThat(service.listAvailable())
+        List<DeliverySlotVO> available = service.listAvailable();
+        assertThat(available)
+                .filteredOn(entry -> entry.date().equals(LocalDate.now().plusDays(1)))
                 .singleElement()
-                .satisfies(available -> {
-                    assertThat(available.id()).isEqualTo(3L);
-                    assertThat(available.date()).isEqualTo(LocalDate.now().plusDays(1));
-                    assertThat(available.remainingCapacity()).isEqualTo(3);
+                .satisfies(entry -> {
+                    assertThat(entry.id()).isEqualTo(3L);
+                    assertThat(entry.remainingCapacity()).isEqualTo(3);
                 });
     }
 

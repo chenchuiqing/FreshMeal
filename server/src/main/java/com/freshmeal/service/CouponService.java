@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface CouponService {
 
-    List<CouponVO> listAvailable();
+    List<CouponVO> listAvailable(Long userId);
 
     List<UserCouponVO> listUserCoupons(Long userId);
 
